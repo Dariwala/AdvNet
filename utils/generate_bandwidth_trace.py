@@ -1,0 +1,20 @@
+import time
+
+def create_trace(bandwidths, durations):
+    unique_filename = f"file_{float(time.time())}"
+
+    with open("traces/" + unique_filename, 'w') as file:
+        base_time = 0
+        for i, duration in enumerate(durations):
+            bandwidth = bandwidths[i]
+            pdos = []
+            time_unit = 12000 / bandwidth
+            end_time = base_time + duration
+            while base_time + time_unit <= end_time:
+                pdos.append(round(base_time + time_unit))
+                base_time += time_unit
+            base_time = end_time
+
+            for pdo in pdos:
+                file.write(str(pdo)+"\n")
+        return unique_filename
