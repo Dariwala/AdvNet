@@ -1,6 +1,6 @@
 import argparse
 from single_cc.evaluate import evaluate
-import os
+import os, subprocess
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -9,6 +9,10 @@ if __name__ == "__main__":
 
     trace = [1000,1200,10,8,1000,1000]
     if args.type == 0:
-        evaluate(trace)
+        # server_process = subprocess.Popen(['iperf', '-s'], stdout=subprocess.PIPE, text=True)
+        os.system("iperf -s &")
+        evaluate(trace, "cubic", "reno")
     
     os.system("rm traces/*")
+    os.system("rm temp")
+    os.system("pkill -9 iperf")
