@@ -11,8 +11,11 @@ if __name__ == "__main__":
     if args.type == 0:
         # server_process = subprocess.Popen(['iperf', '-s'], stdout=subprocess.PIPE, text=True)
         os.system("iperf -s &")
-        evaluate(trace, "cubic", "reno")
-    
+        ts = []
+        for _ in range(10):
+            t_r, t_t = evaluate(trace, "cubic", "reno")
+            ts.append((t_r, t_t))
+        print(ts)
     os.system("rm traces/*")
     os.system("rm temp")
     os.system("pkill -9 iperf")

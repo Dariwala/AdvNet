@@ -47,7 +47,8 @@ def evaluate(trace, ref, tar):
     
     throughput_ref = get_throughput(bw_file, lt_file, tot_duration, ref)
     throughput_tar = get_throughput(bw_file, lt_file, tot_duration, tar)
-    print(throughput_ref - throughput_tar)
+    
+    return throughput_ref, throughput_tar
 
 if __name__ == "__main__":
     evaluate(1000, 10, 1000)
