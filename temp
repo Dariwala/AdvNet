@@ -1,0 +1,72 @@
+Start
+delay-link-rrc-3324414 100.64.0.3:0 peer 100.64.0.4:0
+Start
+delay-link-rrc-3325012 100.64.0.1:0 peer 100.64.0.2:0
+/usr/sbin/iptables -w -t nat -A PREROUTING -s 100.64.0.2 -j CONNMARK --set-mark 3325012 
+/usr/sbin/iptables -w -t nat -A POSTROUTING -j MASQUERADE -m connmark --mark 3325012 
+ingress 100.64.0.2:0 peer 100.64.0.1:0
+ingress_addr: 100.64.0.2:0
+egress_addr: 100.64.0.1:0
+Start
+delay-link-rrc-3325514 100.64.0.1:0 peer 100.64.0.2:0
+/usr/sbin/iptables -w -t nat -A PREROUTING -s 100.64.0.2 -j CONNMARK --set-mark 3325514 
+/usr/sbin/iptables -w -t nat -A POSTROUTING -j MASQUERADE -m connmark --mark 3325514 
+ingress 100.64.0.2:0 peer 100.64.0.1:0
+ingress_addr: 100.64.0.2:0
+egress_addr: 100.64.0.1:0
+------------------------------------------------------------
+Client connecting to 100.64.0.1, TCP port 5001
+TCP window size: 85.0 KByte (default)
+------------------------------------------------------------
+[  3] local 100.64.0.2 port 43432 connected with 100.64.0.1 port 5001
+[ ID] Interval       Transfer     Bandwidth
+[  3]  0.0- 3.7 sec  1.62 MBytes  3.66 Mbits/sec
+Start
+delay-link-rrc-3325741 100.64.0.1:0 peer 100.64.0.2:0
+/usr/sbin/iptables -w -t nat -A PREROUTING -s 100.64.0.2 -j CONNMARK --set-mark 3325741 
+/usr/sbin/iptables -w -t nat -A POSTROUTING -j MASQUERADE -m connmark --mark 3325741 
+ingress 100.64.0.2:0 peer 100.64.0.1:0
+ingress_addr: 100.64.0.2:0
+egress_addr: 100.64.0.1:0
+------------------------------------------------------------
+Client connecting to 100.64.0.1, TCP port 5001
+TCP window size: 85.0 KByte (default)
+------------------------------------------------------------
+[  3] local 100.64.0.2 port 43434 connected with 100.64.0.1 port 5001
+[ ID] Interval       Transfer     Bandwidth
+[  3]  0.0- 3.5 sec  2.07 MBytes  4.94 Mbits/sec
+Start
+delay-link-rrc-3329933 100.64.0.1:0 peer 100.64.0.2:0
+/usr/sbin/iptables -w -t nat -A PREROUTING -s 100.64.0.2 -j CONNMARK --set-mark 3329933 
+/usr/sbin/iptables -w -t nat -A POSTROUTING -j MASQUERADE -m connmark --mark 3329933 
+ingress 100.64.0.2:0 peer 100.64.0.1:0
+ingress_addr: 100.64.0.2:0
+egress_addr: 100.64.0.1:0
+Start
+delay-link-rrc-3330474 100.64.0.1:0 peer 100.64.0.2:0
+/usr/sbin/iptables -w -t nat -A PREROUTING -s 100.64.0.2 -j CONNMARK --set-mark 3330474 
+/usr/sbin/iptables -w -t nat -A POSTROUTING -j MASQUERADE -m connmark --mark 3330474 
+ingress 100.64.0.2:0 peer 100.64.0.1:0
+ingress_addr: 100.64.0.2:0
+egress_addr: 100.64.0.1:0
+------------------------------------------------------------
+Client connecting to 100.64.0.1, TCP port 5001
+TCP window size: 85.0 KByte (default)
+------------------------------------------------------------
+[  3] local 100.64.0.2 port 43472 connected with 100.64.0.1 port 5001
+[ ID] Interval       Transfer     Bandwidth
+[  3]  0.0- 3.7 sec  1.62 MBytes  3.65 Mbits/sec
+Start
+delay-link-rrc-3330680 100.64.0.1:0 peer 100.64.0.2:0
+/usr/sbin/iptables -w -t nat -A PREROUTING -s 100.64.0.2 -j CONNMARK --set-mark 3330680 
+/usr/sbin/iptables -w -t nat -A POSTROUTING -j MASQUERADE -m connmark --mark 3330680 
+ingress 100.64.0.2:0 peer 100.64.0.1:0
+ingress_addr: 100.64.0.2:0
+egress_addr: 100.64.0.1:0
+------------------------------------------------------------
+Client connecting to 100.64.0.1, TCP port 5001
+TCP window size: 85.0 KByte (default)
+------------------------------------------------------------
+[  3] local 100.64.0.2 port 43474 connected with 100.64.0.1 port 5001
+[ ID] Interval       Transfer     Bandwidth
+[  3]  0.0- 3.6 sec  2.01 MBytes  4.69 Mbits/sec

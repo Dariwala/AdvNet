@@ -20,13 +20,16 @@ if __name__ == "__main__":
         os.system("iperf -s &")
         if args.alg == 0:
             RandomGenerator = RandomGeneration(args.trace_length, args.l_bounds, args.u_bounds, args.seed)
-            for _ in range(10):
+            for _ in range(1):
                 trace = RandomGenerator.generate_trace()
+                ts = []
+                for _ in range(5):
+                    score = evaluate(trace, args.ref, args.tar)                    
+                    ts.append(score)
                 print(trace)
-                for _ in range(10):
-                    t_r, t_t = evaluate(trace, args.ref, args.tar)
-                    print(t_r, t_t)                    
+                for i in ts:
+                    print(i)
                 
         os.system("rm traces/*")
-        os.system("rm temp")
+        # os.system("rm temp")
         os.system("pkill -9 iperf")
