@@ -23,13 +23,8 @@ if __name__ == "__main__":
             RandomGenerator = RandomGeneration(args.trace_length, args.l_bounds, args.u_bounds, args.seed)
             for _ in range(1):
                 trace = RandomGenerator.generate_trace()
-                ts = []
-                for _ in range(5):
-                    score = evaluate(trace, args.ref, args.n_eval)                    
-                    ts.append(score)
-                print(trace)
-                for i in ts:
-                    print(i)
+                score = evaluate(trace, args.ref, args.n_eval)                    
+                print(trace, score)
                 
         os.system("rm traces/*")
         # os.system("rm temp")

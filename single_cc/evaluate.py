@@ -46,9 +46,7 @@ def get_throughput(bw_file, lt_file, tot_duration, alg):
     # Run iperf client
     server_ip = '100.64.0.1'  # Change to the IP address of your server
     result, duration = run_iperf_client(server_ip, tot_duration, alg, bw_file, lt_file)
-    return result, duration# * 8000 / tot_duration
-    # server_process.terminate()
-    # return float(result.split("\n")[-2].split()[-4]) * 8000 / tot_duration
+    return result, duration
 
 def get_maximum_throughput(bw_file, actual_duration):
     # tot_data = 0
@@ -59,7 +57,7 @@ def get_maximum_throughput(bw_file, actual_duration):
     
     # return tot_data / tot_time
     saved_actual_duration = actual_duration
-    with open("~/AdvNet/traces/"+bw_file) as f:
+    with open("/home/shehaba2/AdvNet/traces/"+bw_file) as f:
         lines = f.read().split('\n')[:-1]
         duration_reached = False
         tot_bytes = 0
@@ -68,6 +66,7 @@ def get_maximum_throughput(bw_file, actual_duration):
                 if float(line) <= actual_duration:
                     tot_bytes += 1500
                 else:
+                    duration_reached = True
                     break
             actual_duration -= float(lines[-1])
     return tot_bytes * 8 * 1000 / (saved_actual_duration * 1024 * 1024)
@@ -84,7 +83,7 @@ def evaluate(trace, ref, n_evals):
     for i in range(n_evals):
         throughput_ref, actual_duration = get_throughput(bw_file, lt_file, tot_duration, ref)
         throughput_baseline = get_maximum_throughput(bw_file, actual_duration)
-        results.append(throughput_baseline - throughput_ref)
+        results.append((throughput_baseline - throughput_ref) / throughput_baseline)
     
     return sum(results) / n_evals
 
