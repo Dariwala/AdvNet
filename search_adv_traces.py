@@ -13,6 +13,7 @@ if __name__ == "__main__":
     parser.add_argument('--u_bounds', nargs='+', type=int, default=[4000,20,3000], help='Upper bounds')
     parser.add_argument('--ref', type=str, default="cubic", help='Reference algorithm')
     parser.add_argument('--tar', type=str, default="reno", help='Target algorithm')
+    parser.add_argument('--n_eval', type=int, default=1, help='How many times to evaluate per trace')
     args = parser.parse_args()
 
     if args.type == 0:
@@ -24,7 +25,7 @@ if __name__ == "__main__":
                 trace = RandomGenerator.generate_trace()
                 ts = []
                 for _ in range(5):
-                    score = evaluate(trace, args.ref, args.tar)                    
+                    score = evaluate(trace, args.ref, args.n_eval)                    
                     ts.append(score)
                 print(trace)
                 for i in ts:
