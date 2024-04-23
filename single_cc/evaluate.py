@@ -72,6 +72,7 @@ def get_maximum_throughput(bw_file, actual_duration):
     return tot_bytes * 8 * 1000 / (saved_actual_duration * 1024 * 1024)
 
 def evaluate(trace, ref, n_evals):
+    print(type(trace[0]))
     bandwidths, latencies, durations = split_trace(trace)
     tot_duration = sum(durations)
 
