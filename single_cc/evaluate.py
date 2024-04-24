@@ -38,7 +38,7 @@ def run_iperf_client(server_ip, duration, alg, bw_file, lt_file):
     #     else:
     #         return result.stdout
     # print("mm-delay-link-rrc 8 ~/AdvNet/traces/"+lt_file+" ~/AdvNet/traces/"+bw_file+" ~/AdvNet/traces/"+bw_file+" ~/packet-logs/ --uplink-queue=droptail --uplink-queue-args=packets=100 iperf -c " + server_ip + " -Z " + alg + " -t " + str(duration / 1000) + " >> temp")
-    os.system("mm-delay-link-rrc 10 ~/AdvNet/traces/"+lt_file+" ~/AdvNet/traces/"+bw_file+" ~/AdvNet/traces/"+bw_file+" ~/packet-logs/ --uplink-log=/home/shehaba2/packet-logs/uplink --downlink-log=/home/shehaba2/packet-logs/downlink --uplink-queue=droptail --uplink-queue-args=packets=100 iperf -c " + server_ip + " -Z " + alg + " -t " + str(duration / 1000))
+    os.system("mm-delay-link-rrc 10 ~/AdvNet/traces/"+lt_file+" ~/AdvNet/traces/"+bw_file+" ~/AdvNet/traces/"+bw_file+" ~/packet-logs/ --uplink-log=/home/shehaba2/packet-logs/uplink --downlink-log=/home/shehaba2/packet-logs/downlink --uplink-queue=droptail --uplink-queue-args=packets=10 iperf -c " + server_ip + " -Z " + alg + " -t " + str(duration / 1000))
     tot_bytes, duration = read_uplink()
     return tot_bytes * 8 * 1000 / (duration * 1024 * 1024), duration
 
@@ -71,8 +71,7 @@ def get_maximum_throughput(bw_file, actual_duration):
             actual_duration -= float(lines[-1])
     return tot_bytes * 8 * 1000 / (saved_actual_duration * 1024 * 1024)
 
-def evaluate(trace, ref, n_evals):
-    print(type(trace[0]))
+def evaluate(trace, ref, n_evals, log = False):
     bandwidths, latencies, durations = split_trace(trace)
     tot_duration = sum(durations)
 
@@ -80,13 +79,18 @@ def evaluate(trace, ref, n_evals):
     lt_file = create_delay_trace(latencies, durations)
     
     results = []
+    logs = []
 
     for i in range(n_evals):
         throughput_ref, actual_duration = get_throughput(bw_file, lt_file, tot_duration, ref)
         throughput_baseline = get_maximum_throughput(bw_file, actual_duration)
+        logs.append((throughput_ref, throughput_baseline))
         results.append((throughput_baseline - throughput_ref) / throughput_baseline)
     
+    if log:
+        print(logs)
+
     return sum(results) / n_evals
 
 if __name__ == "__main__":
-    evaluate(1000, 10, 1000)
+    evaluate([3415.6695905,1011.86631287,18.69001926,16.15368375,1125.13704318,1472.97282379], "cubic", 3)
