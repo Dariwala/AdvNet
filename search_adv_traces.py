@@ -19,6 +19,7 @@ if __name__ == "__main__":
     parser.add_argument('--n_eval', type=int, default=1, help='How many times to evaluate per trace')
     parser.add_argument('--pop_size', type=int, default=15, help='Number of individuals for GA')
     parser.add_argument('--n_iter', type=int, default=5, help='Number of iterations for GA')
+    parser.add_argument('--total_time', type=float, default=5, help='Total time to run the emulation')
     args = parser.parse_args()
 
     if args.type == 0: #Single CC
@@ -32,7 +33,7 @@ if __name__ == "__main__":
                 # score = evaluate(trace, args.ref, args.n_eval, log = True)
                 # score = evaluate(trace, args.ref, args.n_eval)                    
                 # print(trace, score)
-            trace, score = randomGenerator.run(1000)
+            trace, score = randomGenerator.run(args.total_time)
             print(trace, score)
         elif args.alg == 1: #GA
             start_time = time.perf_counter()
