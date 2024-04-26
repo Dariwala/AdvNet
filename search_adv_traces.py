@@ -9,7 +9,7 @@ import time
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--type', type=int, default=0, help="0 for single_cc")
-    parser.add_argument('--alg', type=int, default=0, help="0 for random generation, 1 for GA, 2 for evaluating a trace")
+    parser.add_argument('--alg', type=int, default=0, help="0 for random generation, 1 for GA")
     parser.add_argument('--trace_length', type=int, default=3)
     parser.add_argument('--seed', type=int, default=10)
     parser.add_argument('--l_bounds', nargs='+', type=int, default=[1000,5,1000], help='Lower bounds')
@@ -20,7 +20,6 @@ if __name__ == "__main__":
     parser.add_argument('--pop_size', type=int, default=15, help='Number of individuals for GA')
     parser.add_argument('--n_iter', type=int, default=5, help='Number of iterations for GA')
     parser.add_argument('--total_time', type=float, default=5, help='Total time to run the emulation')
-    parser.add_argument('--trace', nargs='+', type=int, default=[4000,20,3000], help='Trace to evaluate when alg=2')
     args = parser.parse_args()
 
     if args.type == 0: #Single CC
@@ -42,9 +41,6 @@ if __name__ == "__main__":
             ga = AdvNetGA(problem, args.pop_size, args.seed, args.n_iter)
             result = ga.run()
             print(result.F, result.X, time.perf_counter() - start_time)
-        elif args.mode == 2: #Evaluate
-            score = evaluate(trace, args.ref, args.n_eval)                    
-            print(trace, score)
-                
+            
         os.system("rm traces/*")
         os.system("pkill -9 iperf")
