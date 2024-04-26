@@ -1,0 +1,39 @@
+------------------------------------------------------------
+Server listening on TCP port 5001
+TCP window size:  128 KByte (default)
+------------------------------------------------------------
+Start
+delay-link-rrc-915584 100.64.0.1:0 peer 100.64.0.2:0
+/usr/sbin/iptables -w -t nat -A PREROUTING -s 100.64.0.2 -j CONNMARK --set-mark 915584 
+/usr/sbin/iptables -w -t nat -A POSTROUTING -j MASQUERADE -m connmark --mark 915584 
+ingress 100.64.0.2:0 peer 100.64.0.1:0
+ingress_addr: 100.64.0.2:0
+egress_addr: 100.64.0.1:0
+Start
+delay-link-rrc-945231 100.64.0.1:0 peer 100.64.0.2:0
+/usr/sbin/iptables -w -t nat -A PREROUTING -s 100.64.0.2 -j CONNMARK --set-mark 945231 
+/usr/sbin/iptables -w -t nat -A POSTROUTING -j MASQUERADE -m connmark --mark 945231 
+ingress 100.64.0.2:0 peer 100.64.0.1:0
+ingress_addr: 100.64.0.2:0
+egress_addr: 100.64.0.1:0
+Start
+delay-link-rrc-945935 100.64.0.1:0 peer 100.64.0.2:0
+/usr/sbin/iptables -w -t nat -A PREROUTING -s 100.64.0.2 -j CONNMARK --set-mark 945935 
+/usr/sbin/iptables -w -t nat -A POSTROUTING -j MASQUERADE -m connmark --mark 945935 
+ingress 100.64.0.2:0 peer 100.64.0.1:0
+ingress_addr: 100.64.0.2:0
+egress_addr: 100.64.0.1:0
+Start
+delay-link-rrc-946025 100.64.0.1:0 peer 100.64.0.2:0
+/usr/sbin/iptables -w -t nat -A PREROUTING -s 100.64.0.2 -j CONNMARK --set-mark 946025 
+/usr/sbin/iptables -w -t nat -A POSTROUTING -j MASQUERADE -m connmark --mark 946025 
+ingress 100.64.0.2:0 peer 100.64.0.1:0
+ingress_addr: 100.64.0.2:0
+egress_addr: 100.64.0.1:0
+Start
+delay-link-rrc-946058 100.64.0.1:0 peer 100.64.0.2:0
+/usr/sbin/iptables -w -t nat -A PREROUTING -s 100.64.0.2 -j CONNMARK --set-mark 946058 
+/usr/sbin/iptables -w -t nat -A POSTROUTING -j MASQUERADE -m connmark --mark 946058 
+ingress 100.64.0.2:0 peer 100.64.0.1:0
+ingress_addr: 100.64.0.2:0
+egress_addr: 100.64.0.1:0
