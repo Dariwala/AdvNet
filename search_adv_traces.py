@@ -27,17 +27,11 @@ if __name__ == "__main__":
         os.system("iperf -s &")
         if args.alg == 0: #Random
             randomGenerator = RandomGeneration(args.trace_length, args.l_bounds, args.u_bounds, args.seed, evaluate, args.ref, args.n_eval)
-            # for _ in range(1):
-            #     trace = randomGenerator.generate_trace()
-                # trace = [3407,2565,19,11,1181,1600]
-                # score = evaluate(trace, args.ref, args.n_eval, log = True)
-                # score = evaluate(trace, args.ref, args.n_eval)                    
-                # print(trace, score)
             trace, score = randomGenerator.run(args.total_time)
             print(trace, score)
         elif args.alg == 1: #GA
             start_time = time.perf_counter()
-            problem = SingleCCProblem(args.trace_length, args.l_bounds, args.u_bounds, args.ref, args.n_eval)
+            problem = SingleCCProblem(args.trace_length, args.l_bounds, args.u_bounds, args.ref, args.n_eval, evaluate)
             ga = AdvNetGA(problem, args.pop_size, args.seed, args.n_iter)
             result = ga.run()
             print(result.F, result.X, time.perf_counter() - start_time)
