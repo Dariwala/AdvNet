@@ -8,9 +8,9 @@ class SingleCCProblem(ElementwiseProblem):
         self.upper_bound = np.array(upper_bound)
         self.ref = ref
         self.n_evals = n_evals
-        self.evaluate = evaluate
+        self.func = evaluate
         super().__init__(n_var=trace_length, n_obj=1, n_ieq_constr=0, n_eq_constr = 0, xl=lower_bound, xu=upper_bound, **kwargs)
 
     def _evaluate(self, x, out, *args, **kwargs):
-        score = self.evaluate(list(x), self.ref, self.n_evals)
+        score = self.func(list(x), self.ref, self.n_evals)
         out["F"] = - score

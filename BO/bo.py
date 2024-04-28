@@ -5,13 +5,13 @@ class AdvNetBO():
         self.trace_length = trace_length
         self.l_bound = l_bound
         self.u_bound = u_bound
-        self.evaluate = evaluate
+        self.func = evaluate
         self.n_evals = n_evals
         self.ref = ref
         self.seed = seed
     
     def _evaluate(self, trace):
-        score = self.evaluate(trace, self.ref, self.n_evals)
+        score = self.func(trace, self.ref, self.n_evals)
         return -score
     
     def run(self, n_calls):
