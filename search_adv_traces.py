@@ -4,12 +4,13 @@ from single_cc.problem import SingleCCProblem
 from random_generator.random_generator import RandomGeneration
 import os, subprocess
 from GA.ga import AdvNetGA
+from BO.bo import AdvNetBO
 import time
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--type', type=int, default=0, help="0 for single_cc")
-    parser.add_argument('--alg', type=int, default=0, help="0 for random generation, 1 for GA")
+    parser.add_argument('--alg', type=int, default=0, help="0 for random generation, 1 for GA, 2 for BO")
     parser.add_argument('--trace_length', type=int, default=3)
     parser.add_argument('--seed', type=int, default=10)
     parser.add_argument('--l_bounds', nargs='+', type=int, default=[1000,5,1000], help='Lower bounds')
@@ -20,6 +21,7 @@ if __name__ == "__main__":
     parser.add_argument('--pop_size', type=int, default=15, help='Number of individuals for GA')
     parser.add_argument('--n_iter', type=int, default=5, help='Number of iterations for GA')
     parser.add_argument('--total_time', type=float, default=5, help='Total time to run the emulation')
+    parser.add_argument('--n_calls', type=int, default=50, help='Number of calls to the expensive evaluation function for BO')
     args = parser.parse_args()
 
     if args.type == 0: #Single CC
@@ -29,12 +31,17 @@ if __name__ == "__main__":
             randomGenerator = RandomGeneration(args.trace_length, args.l_bounds, args.u_bounds, args.seed, evaluate, args.ref, args.n_eval)
             trace, score = randomGenerator.run(args.total_time)
             print(trace, score)
+
         elif args.alg == 1: #GA
             start_time = time.perf_counter()
             problem = SingleCCProblem(args.trace_length, args.l_bounds, args.u_bounds, args.ref, args.n_eval, evaluate)
             ga = AdvNetGA(problem, args.pop_size, args.seed, args.n_iter)
             result = ga.run()
             print(result.F, result.X, time.perf_counter() - start_time)
-            
+
+        elif args.alg == 2: #BO
+            bo = AdvNetBO(args.trace_length, args.l_bounds, args.u_bounds, evaluate, args.n_eval, args.ref, args.seed)
+            res = bo.run(args.n_calls)
+            print(res)
         os.system("rm traces/*")
         os.system("pkill -9 iperf")
