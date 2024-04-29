@@ -22,26 +22,28 @@ if __name__ == "__main__":
     parser.add_argument('--n_iter', type=int, default=5, help='Number of iterations for GA')
     parser.add_argument('--total_time', type=float, default=5, help='Total time to run the emulation')
     parser.add_argument('--n_calls', type=int, default=50, help='Number of calls to the expensive evaluation function for BO')
+    parser.add_argument('--parallelize', type=int, default=1, help='Whether to parallelize multiple executions of a single trace')
     args = parser.parse_args()
 
     if args.type == 0: #Single CC
         # server_process = subprocess.Popen(['iperf', '-s'], stdout=subprocess.PIPE, text=True)
         os.system("iperf -s &")
         if args.alg == 0: #Random
-            randomGenerator = RandomGeneration(args.trace_length, args.l_bounds, args.u_bounds, args.seed, evaluate, args.ref, args.n_eval)
+            randomGenerator = RandomGeneration(args.trace_length, args.l_bounds, args.u_bounds, args.seed, evaluate, args.ref, args.n_eval, args.parallelize)
             trace, score = randomGenerator.run(args.total_time)
             print(trace, score)
 
         elif args.alg == 1: #GA
             start_time = time.perf_counter()
-            problem = SingleCCProblem(args.trace_length, args.l_bounds, args.u_bounds, args.ref, args.n_eval, evaluate)
+            problem = SingleCCProblem(args.trace_length, args.l_bounds, args.u_bounds, args.ref, args.n_eval, evaluate, args.parallelize)
             ga = AdvNetGA(problem, args.pop_size, args.seed, args.n_iter)
             result = ga.run()
             print(result.F, result.X, time.perf_counter() - start_time)
 
         elif args.alg == 2: #BO
             bo = AdvNetBO(args.trace_length, args.l_bounds, args.u_bounds, evaluate, args.n_eval, args.ref, args.seed)
-            res = bo.run(args.n_calls)
-            print(res)
+            res = bo.run(args.n_calls)         
+            score = evaluate(res.x, args.ref, 1, True)
+            print(score)
         os.system("rm traces/*")
         os.system("pkill -9 iperf")
