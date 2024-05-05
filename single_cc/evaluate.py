@@ -6,7 +6,6 @@ import re
 import threading
 from time import sleep
 import os
-from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 
 def read_uplink():
@@ -73,7 +72,7 @@ def get_maximum_throughput(bw_file, actual_duration):
             actual_duration -= float(lines[-1])
     return tot_bytes * 8 * 1000 / (saved_actual_duration * 1024 * 1024)
 
-def evaluate(trace, ref, n_evals, log = False, parallelize = False):
+def evaluate(trace, ref, n_evals, log = False):
     bandwidths, latencies, durations = split_trace(trace)
     tot_duration = sum(durations)
 
@@ -83,13 +82,8 @@ def evaluate(trace, ref, n_evals, log = False, parallelize = False):
     results = []
     logs = []
 
-    if parallelize == 1:
-        with ThreadPoolExecutor() as executor:
-            futures = [executor.submit(get_throughput, bw_file, lt_file, tot_duration, ref) for _ in range(n_evals)]
-            res = [future.result() for future in futures]
-
     for i in range(n_evals):
-        throughput_ref, actual_duration = res[i] if parallelize == 1 else get_throughput(bw_file, lt_file, tot_duration, ref)
+        throughput_ref, actual_duration = get_throughput(bw_file, lt_file, tot_duration, ref)
         throughput_baseline = get_maximum_throughput(bw_file, actual_duration)
         logs.append((throughput_ref, throughput_baseline))
         results.append((throughput_baseline - throughput_ref) / throughput_baseline)

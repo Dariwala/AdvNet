@@ -29,13 +29,13 @@ if __name__ == "__main__":
         # server_process = subprocess.Popen(['iperf', '-s'], stdout=subprocess.PIPE, text=True)
         os.system("iperf -s &")
         if args.alg == 0: #Random
-            randomGenerator = RandomGeneration(args.trace_length, args.l_bounds, args.u_bounds, args.seed, evaluate, args.ref, args.n_eval, args.parallelize)
+            randomGenerator = RandomGeneration(args.trace_length, args.l_bounds, args.u_bounds, args.seed, evaluate, args.ref, args.n_eval)
             trace, score = randomGenerator.run(args.total_time)
             print(trace, score)
 
         elif args.alg == 1: #GA
             start_time = time.perf_counter()
-            problem = SingleCCProblem(args.trace_length, args.l_bounds, args.u_bounds, args.ref, args.n_eval, evaluate, args.parallelize)
+            problem = SingleCCProblem(args.trace_length, args.l_bounds, args.u_bounds, args.ref, args.n_eval, evaluate)
             ga = AdvNetGA(problem, args.pop_size, args.seed, args.n_iter)
             result = ga.run()
             print(result.F, result.X, time.perf_counter() - start_time)

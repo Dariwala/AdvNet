@@ -31,13 +31,13 @@ if __name__ == "__main__":
     parser.add_argument('--uplink_file_name', type = str, help = "Uplink file name")
     args = parser.parse_args()
     os.system("iperf -s &")
-    score = evaluate(args.trace, args.ref, 1, True)
+    score = evaluate(args.trace, args.ref, 3, True, True)
     print(score)
     os.system("pkill -9 iperf")
 
     os.system("cp /home/shehaba2//packet-logs/uplink results/uplink_" + args.uplink_file_name)
 
-    bandwidths = get_continuous_throughput("results/uplink_" + args.uplink_file_name)
+    # bandwidths = get_continuous_throughput("results/uplink_" + args.uplink_file_name)
 
-    for time, bandwidth, throughput in bandwidths:
-        print(time, bandwidth, throughput)
+    # for time, bandwidth, throughput in bandwidths:
+    #     print(time, bandwidth, throughput)
