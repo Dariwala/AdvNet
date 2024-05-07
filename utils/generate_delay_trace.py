@@ -13,3 +13,14 @@ def create_trace(latencies, durations):
             base_time = base_time + duration
     
     return unique_filename
+
+def create_trace_fuzzing():
+    unique_filename = f"file_{float(time.time())}"
+
+    with open("traces/" + unique_filename, 'w') as file:    
+        file.write("0  10\n")
+        file.write("999  10\n")
+        file.write("1000  11\n")
+        file.write("1999  11\n")
+    
+    return unique_filename

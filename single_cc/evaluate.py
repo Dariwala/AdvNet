@@ -1,6 +1,7 @@
 from single_cc.split_trace import split_trace
-from utils.generate_bandwidth_trace import create_trace as create_bandwidth_trace
-from utils.generate_delay_trace import create_trace as create_delay_trace
+from single_cc.preprocess_trace_fuzzing import preprocess_trace_fuzzing
+from utils.generate_bandwidth_trace import create_trace as create_bandwidth_trace, create_trace_fuzzing as create_bandwidth_trace_fuzzing
+from utils.generate_delay_trace import create_trace as create_delay_trace, create_trace_fuzzing as create_delay_trace_fuzzing
 import subprocess
 import re
 import threading
@@ -72,12 +73,17 @@ def get_maximum_throughput(bw_file, actual_duration):
             actual_duration -= float(lines[-1])
     return tot_bytes * 8 * 1000 / (saved_actual_duration * 1024 * 1024)
 
-def evaluate(trace, ref, n_evals, log = False):
-    bandwidths, latencies, durations = split_trace(trace)
-    tot_duration = sum(durations)
+def evaluate(trace, ref, n_evals, log = False, fuzzing = False):
+    if not fuzzing:
+        bandwidths, latencies, durations = split_trace(trace)
+        tot_duration = sum(durations)
 
-    bw_file = create_bandwidth_trace(bandwidths, durations)
-    lt_file = create_delay_trace(latencies, durations)
+        bw_file = create_bandwidth_trace(bandwidths, durations)
+        lt_file = create_delay_trace(latencies, durations)
+    else:
+        trace, tot_duration = preprocess_trace_fuzzing(trace)
+        bw_file = create_bandwidth_trace_fuzzing(trace)
+        lt_file = create_delay_trace_fuzzing()
     
     results = []
     logs = []

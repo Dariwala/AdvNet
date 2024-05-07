@@ -3,7 +3,7 @@ import time
 import numpy as np
 
 class RandomGeneration():
-    def __init__(self, trace_length, l_bounds, u_bounds, seed, evaluate, ref, n_eval):
+    def __init__(self, trace_length, l_bounds, u_bounds, seed, evaluate, ref, n_eval, fuzzing):
         assert len(l_bounds) == len(u_bounds) == trace_length
         self.seed = seed
         self.l_bounds = l_bounds
@@ -13,6 +13,7 @@ class RandomGeneration():
         self.evaluate = evaluate
         self.ref = ref
         self.n_eval = n_eval
+        self.fuzzing = fuzzing
 
     def generate_trace(self):
         trace = []
@@ -28,7 +29,7 @@ class RandomGeneration():
         best_trace = None
         while time.perf_counter() - start_time < total_time:
             trace = self.generate_trace()
-            score = self.evaluate(trace, self.ref, self.n_eval)
+            score = self.evaluate(trace, self.ref, self.n_eval, fuzzing = self.fuzzing)
 
             if score > best_score:
                 best_score = score

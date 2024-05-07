@@ -18,3 +18,11 @@ def create_trace(bandwidths, durations):
             for pdo in pdos:
                 file.write(str(pdo)+"\n")
         return unique_filename
+    
+def create_trace_fuzzing(pdos):
+    unique_filename = f"file_{float(time.time())}"
+
+    with open("traces/" + unique_filename, 'w') as file:
+        for pdo in pdos:
+            file.write(str(pdo)+"\n")
+        return unique_filename
