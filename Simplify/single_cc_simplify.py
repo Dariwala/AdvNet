@@ -22,7 +22,7 @@ class SingleCCSimplify():
         except ZeroDivisionError:
             return 0.5 * length / initial_length
         
-    def compute_variance(trace, i, j):
+    def compute_variance(self, trace, i, j):
         number_of_timesteps = len(trace) // 3
         sum = 0
         for k in range(i+1, j+1):
@@ -64,7 +64,7 @@ class SingleCCSimplify():
                 sign = -1
             for pct in range(0, int(pct_change * 100), sign * 5):
                 old = short_trace[i]
-                short_trace[i] = short_trace[i-1] * (1 + pct / 100)
+                short_trace[i] = round(short_trace[i-1] * (1 + pct / 100))
                 p_score = evaluate(short_trace, self.ref, 3)
                 c_score = self.compute_score(short_trace)
 
