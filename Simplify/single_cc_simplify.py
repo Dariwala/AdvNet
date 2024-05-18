@@ -46,13 +46,14 @@ class SingleCCSimplify():
             return True
     
     def shorten_length(self, trace):
-        for candidate_length in range(2, len(trace) + 1):
+        for candidate_length in range(2, len(trace) // 3 + 1):
             candidate_trace = self.slice(candidate_length, trace)
             complexity_score = self.compute_score(candidate_trace)
             performance_score = evaluate(candidate_trace, self.ref, 3)
 
             if self.check_validity(complexity_score, performance_score):
                 return candidate_trace
+        return trace
     
     def reduce_variance(self, short_trace):
         for i in range(1, len(short_trace)):
@@ -82,5 +83,5 @@ class SingleCCSimplify():
             else:
                 prev_length = len(shortened_trace)
             self.reduce_variance(shortened_trace)
-        return shortened_trace
+        return shortened_trace, evaluate(shortened_trace, self.ref, 3), self.compute_score(shortened_trace)
         

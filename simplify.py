@@ -13,6 +13,6 @@ if __name__ == "__main__":
     
     simplify = SingleCCSimplify(args.trace, args.pc, args.mpd, args.ref)
 
-    simplified_trace = simplify.simplify()
-    print(simplified_trace)
+    simplified_trace, p_score, c_score = simplify.simplify()
+    print(simplified_trace, p_score, c_score)
     
