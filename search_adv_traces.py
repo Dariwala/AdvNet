@@ -39,10 +39,11 @@ if __name__ == "__main__":
 
         elif args.alg == 1: #GA
             start_time = time.perf_counter()
-            problem = SingleCCProblem(args.trace_length, args.l_bounds, args.u_bounds, args.ref, args.n_eval, evaluate, args.fuzzing)
+            problem = SingleCCProblem(args.trace_length, args.l_bounds, args.u_bounds, args.ref, args.n_eval, evaluate, args.seed, args.fuzzing, start_time, args.total_time)
             ga = AdvNetGA(problem, args.pop_size, args.seed, args.n_iter)
             result = ga.run()
             print(result.F, result.X, time.perf_counter() - start_time)
+            problem.save()
 
         elif args.alg == 2: #BO
             bo = AdvNetBO(args.trace_length, args.l_bounds, args.u_bounds, evaluate, args.n_eval, args.ref, args.seed)
