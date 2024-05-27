@@ -8,19 +8,40 @@ class SingleCCSimplify():
         self.pc = pc #maximum performance to complexity score ratio that would be tolerated by the simplification module
         self.mpd = mpd #maximum percentage decrease of performance that would be tolerated
         self.ref = ref
+        self.min_length = 1
+        self.max_length = 10
+        self.max_bw_variation = 3000
+        self.max_lt_variation = 15
         self.initial_score = evaluate(self.initial_trace, self.ref, 3)
 
+    # def compute_score(self, trace):
+    #     initial_length = len(self.initial_trace)
+    #     length = len(trace)
+    #     variance = self.compute_variance(trace, 0, len(trace) // 3 - 1)
+    #     initial_trace_variance = self.compute_variance(self.initial_trace, 0, len(trace) // 3 - 1)
+
+
+    #     try:
+    #         return 0.5 * length / initial_length + 0.5 * variance / initial_trace_variance
+    #     except ZeroDivisionError:
+    #         return 0.5 * length / initial_length
+
     def compute_score(self, trace):
-        initial_length = len(self.initial_trace)
         length = len(trace)
-        variance = self.compute_variance(trace, 0, len(trace) // 3 - 1)
-        initial_trace_variance = self.compute_variance(self.initial_trace, 0, len(trace) // 3 - 1)
+        score_length = 1 / (self.max_length - self.min_length) * (length // 3 - self.min_length)
+        score_variation = 0
+        count = 0
+        number_of_timesteps = len(trace) // 3
+        for i in range(1, number_of_timesteps):
+            score_variation += np.abs(trace[i] - trace[i-1]) / self.max_bw_variation
+            count += 1
+        for i in range(number_of_timesteps + 1, 2 * number_of_timesteps):
+            score_variation += np.abs(trace[i] - trace[i-1]) / self.max_lt_variation
+            count += 1
+        score_variation /= count
 
+        return 0.5 * (score_length + score_variation)
 
-        try:
-            return 0.5 * length / initial_length + 0.5 * variance / initial_trace_variance
-        except ZeroDivisionError:
-            return 0.5 * length / initial_length
         
     def compute_variance(self, trace, i, j):
         number_of_timesteps = len(trace) // 3
@@ -56,7 +77,7 @@ class SingleCCSimplify():
         return trace
     
     def reduce_variance(self, short_trace):
-        for i in range(1, len(short_trace)):
+        for i in range(1, 2 * (len(short_trace) // 3)):
             if i % (len(short_trace) // 3) == 0:
                 continue
             pct_change = (short_trace[i] - short_trace[i-1]) / short_trace[i-1]
@@ -74,7 +95,7 @@ class SingleCCSimplify():
                 else:
                     break
     def simplify(self):
-        prev_length = len(self.initial_trace)
+        prev_length = -1#len(self.initial_trace)
         shortened_trace = copy.deepcopy(self.initial_trace)
         while True:
             shortened_trace = self.shorten_length(shortened_trace)
