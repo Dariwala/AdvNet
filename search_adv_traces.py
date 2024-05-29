@@ -1,15 +1,16 @@
 import argparse
 from single_cc.evaluate import evaluate
 from single_cc.problem import SingleCCProblem
+from mptcp.evaluate import evaluate as evaluate_mptcp
 from random_generator.random_generator import RandomGeneration
 import os, subprocess
 from GA.ga import AdvNetGA
-from BO.bo import AdvNetBO
+# from BO.bo import AdvNetBO
 import time
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--type', type=int, default=0, help="0 for single_cc")
+    parser.add_argument('--type', type=int, default=0, help="0 for single_cc, 1 for mptcp")
     parser.add_argument('--alg', type=int, default=0, help="0 for random generation, 1 for GA, 2 for BO")
     parser.add_argument('--trace_length', type=int, default=3)
     parser.add_argument('--seed', type=int, default=10)
@@ -45,10 +46,15 @@ if __name__ == "__main__":
             print(result.F, result.X, time.perf_counter() - start_time)
             problem.save()
 
-        elif args.alg == 2: #BO
-            bo = AdvNetBO(args.trace_length, args.l_bounds, args.u_bounds, evaluate, args.n_eval, args.ref, args.seed)
-            res = bo.run(args.n_calls)         
-            score = evaluate(res.x, args.ref, 1, True)
-            print(score)
-        os.system("rm traces/*")
+        # elif args.alg == 2: #BO
+        #     bo = AdvNetBO(args.trace_length, args.l_bounds, args.u_bounds, evaluate, args.n_eval, args.ref, args.seed)
+        #     res = bo.run(args.n_calls)         
+        #     score = evaluate(res.x, args.ref, 1, True)
+        #     print(score)
         os.system("pkill -9 iperf")
+    
+    elif args.type == 1: #mptcp
+        # os.system("mptcpize run iperf -s &")
+        evaluate_mptcp([1000,10,1000,1020,15,500],1)
+    
+    os.system("rm traces/*")
