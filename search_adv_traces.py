@@ -11,6 +11,7 @@ import time
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--type', type=int, default=0, help="0 for single_cc, 1 for mptcp")
+    parser.add_argument('--mptcp_type', type=int, default=2, help='1 for mptcp vs tcp, 2 for mptcp vs baseline, 3 for mptcp one vs two links')
     parser.add_argument('--alg', type=int, default=0, help="0 for random generation, 1 for GA, 2 for BO")
     parser.add_argument('--trace_length', type=int, default=3)
     parser.add_argument('--seed', type=int, default=10)
@@ -55,7 +56,7 @@ if __name__ == "__main__":
     elif args.type == 1: #mptcp
         os.system("mptcpize run iperf -s &")
         if args.alg == 0: #Random
-            randomGenerator = RandomGeneration(args.trace_length, args.l_bounds, args.u_bounds, args.seed, evaluate_mptcp, args.type, args.n_eval)
+            randomGenerator = RandomGeneration(args.trace_length, args.l_bounds, args.u_bounds, args.seed, evaluate_mptcp, args.type, args.n_eval, args.mptcp_type)
             trace, score = randomGenerator.run(args.total_time)
             print(trace, score)
         # score = evaluate_mptcp([1000,20,1000, 1020, 15, 500], 3)
