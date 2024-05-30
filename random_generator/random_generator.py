@@ -33,6 +33,8 @@ class RandomGeneration():
             trace = self.generate_trace()
             if self.type == 0: #single_cc
                 score = self.evaluate(trace, self.args[0], self.args[1], fuzzing = self.args[2])
+            elif self.type == 1: #mptcp
+                score = self.evaluate(trace, self.args[0])
 
             if score > best_score:
                 best_score = score

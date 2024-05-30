@@ -34,7 +34,7 @@ if __name__ == "__main__":
             args.u_bounds = [args.u_bounds[0] for _ in range(args.trace_length)]
         os.system("iperf -s &")
         if args.alg == 0: #Random
-            randomGenerator = RandomGeneration(args.trace_length, args.l_bounds, args.u_bounds, args.seed, evaluate, args.ref, args.n_eval, args.fuzzing)
+            randomGenerator = RandomGeneration(args.trace_length, args.l_bounds, args.u_bounds, args.seed, evaluate, args.type, args.ref, args.n_eval, args.fuzzing)
             trace, score = randomGenerator.run(args.total_time)
             print(trace, score)
 
@@ -51,10 +51,16 @@ if __name__ == "__main__":
         #     res = bo.run(args.n_calls)         
         #     score = evaluate(res.x, args.ref, 1, True)
         #     print(score)
-        os.system("pkill -9 iperf")
     
     elif args.type == 1: #mptcp
-        # os.system("mptcpize run iperf -s &")
-        evaluate_mptcp([1000,10,1000,1020,15,500],1)
+        os.system("mptcpize run iperf -s &")
+        if args.alg == 0: #Random
+            randomGenerator = RandomGeneration(args.trace_length, args.l_bounds, args.u_bounds, args.seed, evaluate_mptcp, args.type, args.n_eval)
+            trace, score = randomGenerator.run(args.total_time)
+            print(trace, score)
+        # score = evaluate_mptcp([1000,20,1000, 1020, 15, 500], 3)
+        # print(score)
     
     os.system("rm traces/*")
+    os.system("pkill -9 iperf")
+    
