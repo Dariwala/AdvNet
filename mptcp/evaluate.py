@@ -57,7 +57,7 @@ def get_maximum_throughput(bw_file, actual_duration):
     return tot_bytes * 8 * 1000
     
 
-def evaluate(trace, n_evals, ref, mptcp_type, log = False):
+def evaluate(trace, ref, n_evals, mptcp_type, log = False):
     bandwidths_1, latencies_1, durations_1, bandwidths_2, latencies_2, durations_2 = split_trace(trace)
 
     bw_file_1 = create_bandwidth_trace(bandwidths_1, durations_1)

@@ -56,9 +56,10 @@ if __name__ == "__main__":
     elif args.type == 1: #mptcp
         os.system("mptcpize run iperf -s &")
         if args.alg == 0: #Random
-            randomGenerator = RandomGeneration(args.trace_length, args.l_bounds, args.u_bounds, args.seed, evaluate_mptcp, args.type, args.n_eval, args.mptcp_type, args.ref)
+            randomGenerator = RandomGeneration(args.trace_length, args.l_bounds, args.u_bounds, args.seed, evaluate_mptcp, args.type, args.ref, args.n_eval, args.mptcp_type)
             trace, score = randomGenerator.run(args.total_time)
             print(trace, score)
+            randomGenerator.save()
         # score = evaluate_mptcp([1000,20,1000, 1020, 15, 500], 3)
         # print(score)
     

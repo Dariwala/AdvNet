@@ -13,6 +13,7 @@ class RandomGeneration():
         self.evaluate = evaluate
         self.args = args
         self.type = type
+        self.max_score_vs_time = []
         # self.ref = ref
         # self.n_eval = n_eval
         # self.fuzzing = fuzzing
@@ -39,4 +40,17 @@ class RandomGeneration():
             if score > best_score:
                 best_score = score
                 best_trace = trace
+                self.max_score_vs_time.append([time.perf_counter() - start_time, best_score])
         return best_trace, best_score
+    
+    def save(self):
+        if self.type == 0:
+            if self.args[2]:
+                method = "fuzzing"
+            else:
+                method = "advnet"
+        elif self.type == 1:
+            method = "mptcp"
+        import pickle
+        with open("results/score_across_time_random_"+self.args[1]+"_"+str(self.seed)+"_"+str(self.trace_length)+"_timesteps_" + method, "wb") as f:
+            pickle.dump(self.max_score_vs_time, f)
