@@ -52,5 +52,5 @@ class RandomGeneration():
         elif self.type == 1:
             method = "mptcp"
         import pickle
-        with open("results/score_across_time_random_"+self.args[1]+"_"+str(self.seed)+"_"+str(self.trace_length)+"_timesteps_" + method, "wb") as f:
+        with open("results/score_across_time_random_"+self.args[0]+"_"+str(self.seed)+"_"+str(self.trace_length)+"_timesteps_" + method, "wb") as f:
             pickle.dump(self.max_score_vs_time, f)
