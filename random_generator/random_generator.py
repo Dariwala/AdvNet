@@ -34,7 +34,7 @@ class RandomGeneration():
             if self.type == 0: #single_cc
                 score = self.evaluate(trace, self.args[0], self.args[1], fuzzing = self.args[2])
             elif self.type == 1: #mptcp
-                score = self.evaluate(trace, self.args[0], self.args[1])
+                score = self.evaluate(trace, self.args[0], self.args[1], self.args[2])
 
             if score > best_score:
                 best_score = score

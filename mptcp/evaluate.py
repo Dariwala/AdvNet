@@ -6,9 +6,9 @@ import subprocess
 from config import parent_folder
 import numpy as np
 
-def create_commands(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, command_type):
+def create_commands(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, command_type, ref):
     command1 = "mm-multipath 14 "+ parent_folder +"AdvNet/traces/"+ lt_file_1 +" "+ parent_folder + "AdvNet/traces/" + bw_file_1 +" "+ parent_folder + "AdvNet/traces/" + bw_file_1 +" "+ parent_folder +"packet-logs/ "+ parent_folder +"AdvNet/traces/"+ lt_file_2 +" "+ parent_folder +"AdvNet/traces/"+ bw_file_2 +" "+ parent_folder +"AdvNet/traces/"+ bw_file_2 +" "+ parent_folder +"packet-logs-2/ --uplink-queue-1=droptail --uplink-queue-args-1=packets=10 --uplink-queue-2=droptail --uplink-queue-args-2=packets=10"
-    command3 = "mptcpize run iperf -c 100.64.0.1 -t " + str(tot_duration / 1000)
+    command3 = "mptcpize run iperf -c 100.64.0.1 -Z "+ ref +"-t " + str(tot_duration / 1000)
     if command_type == 1:
         command2 = "sudo ip mptcp endpoint add 100.64.0.3 subflow 100.64.0.4"
     elif command_type == 2:
@@ -21,9 +21,9 @@ def create_commands(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, co
     """
     return commands
 
-def run_iperf3_client(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, command_type):
+def run_iperf3_client(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, command_type, ref):
     shell = subprocess.Popen("/bin/bash", stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    commands = create_commands(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, command_type)
+    commands = create_commands(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, command_type, ref)
     output, errors = shell.communicate(commands)
 
     tot_bytes_1, duration_1 = read_uplink(parent_folder + "packet-logs/queue-service-log-uplink")
@@ -57,7 +57,7 @@ def get_maximum_throughput(bw_file, actual_duration):
     return tot_bytes * 8 * 1000
     
 
-def evaluate(trace, n_evals, mptcp_type, log = False):
+def evaluate(trace, n_evals, ref, mptcp_type, log = False):
     bandwidths_1, latencies_1, durations_1, bandwidths_2, latencies_2, durations_2 = split_trace(trace)
 
     bw_file_1 = create_bandwidth_trace(bandwidths_1, durations_1)
@@ -68,11 +68,11 @@ def evaluate(trace, n_evals, mptcp_type, log = False):
 
     results = []
     for _ in range(n_evals):
-        throughput_mptcp, duration = run_iperf3_client(bw_file_1, lt_file_1, bw_file_2, lt_file_2, np.max([sum(durations_1), sum(durations_2)]), 1)
+        throughput_mptcp, duration = run_iperf3_client(bw_file_1, lt_file_1, bw_file_2, lt_file_2, np.max([sum(durations_1), sum(durations_2)]), 1, ref)
         if mptcp_type == 2:
             throughput_baseline = (get_maximum_throughput(bw_file_1, duration) + get_maximum_throughput(bw_file_2, duration)) / (duration * 1024 * 1024)
             results.append((throughput_baseline - throughput_mptcp) / throughput_baseline)
         elif mptcp_type == 3:
-            throughput_mptcp_single_link, duration = run_iperf3_client(bw_file_1, lt_file_1, bw_file_2, lt_file_2, sum(durations_1), 2)
+            throughput_mptcp_single_link, duration = run_iperf3_client(bw_file_1, lt_file_1, bw_file_2, lt_file_2, sum(durations_1), 2, ref)
             results.append((throughput_mptcp_single_link - throughput_mptcp) / throughput_mptcp_single_link)
     return np.median(results)
