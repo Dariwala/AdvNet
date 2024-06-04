@@ -13,6 +13,13 @@ if __name__ == "__main__":
     
     simplify = SingleCCSimplify(args.trace, args.pc, args.mpd, args.ref)
 
-    simplified_trace, p_score, c_score = simplify.simplify()
-    print(simplified_trace, p_score, c_score)
+    simplified_trace, p_score, c_score, initial_p_score, initial_c_score = simplify.simplify()
+    with open("simplification_results", "a") as f:
+        print("Reference:", args.ref)
+        print("Initial trace:", args.trace)
+        print("Initial p_score:", initial_p_score, file=f)
+        print("Initial c_score:", initial_c_score, file=f)
+        print("Simplified trace:", simplified_trace, file=f)
+        print("Simplified p_score:", p_score, file=f)
+        print("Simplified c_score:", c_score, file=f)
     

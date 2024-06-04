@@ -12,7 +12,9 @@ class SingleCCSimplify():
         self.max_length = 10
         self.max_bw_variation = 3000
         self.max_lt_variation = 15
-        self.initial_score = evaluate(self.initial_trace, self.ref, 3)
+        self.initial_p_score = evaluate(self.initial_trace, self.ref, 3)
+        self.initial_c_score = self.compute_score(initial_trace)
+        self.final_p_score = None
 
     # def compute_score(self, trace):
     #     initial_length = len(self.initial_trace)
@@ -59,7 +61,7 @@ class SingleCCSimplify():
         return trace[:timesteps] + trace[initial_timesteps: initial_timesteps + timesteps] + trace[2 * initial_timesteps: 2 * initial_timesteps + timesteps]
     
     def check_validity(self, c_score, p_score):
-        if p_score / self.initial_score < 1 - self.mpd:
+        if p_score / self.initial_p_score < 1 - self.mpd:
             return False
         elif p_score / c_score < self.pc:
             return False
@@ -73,6 +75,7 @@ class SingleCCSimplify():
             performance_score = evaluate(candidate_trace, self.ref, 3)
 
             if self.check_validity(complexity_score, performance_score):
+                self.final_p_score = performance_score
                 return candidate_trace
         return trace
     
@@ -93,6 +96,7 @@ class SingleCCSimplify():
                 if self.check_validity(c_score, p_score) == False:
                     short_trace[i] = old
                 else:
+                    self.final_p_score = p_score
                     break
     def simplify(self):
         prev_length = -1#len(self.initial_trace)
@@ -104,5 +108,5 @@ class SingleCCSimplify():
             else:
                 prev_length = len(shortened_trace)
             self.reduce_variance(shortened_trace)
-        return shortened_trace, evaluate(shortened_trace, self.ref, 3), self.compute_score(shortened_trace)
+        return shortened_trace, self.final_p_score, self.compute_score(shortened_trace), self.initial_p_score, self.initial_c_score
         
