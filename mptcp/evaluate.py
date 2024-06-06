@@ -8,7 +8,7 @@ import numpy as np
 
 def create_commands(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, command_type, ref):
     command1 = "mm-multipath 14 "+ parent_folder +"AdvNet/traces/"+ lt_file_1 +" "+ parent_folder + "AdvNet/traces/" + bw_file_1 +" "+ parent_folder + "AdvNet/traces/" + bw_file_1 +" "+ parent_folder +"packet-logs/ "+ parent_folder +"AdvNet/traces/"+ lt_file_2 +" "+ parent_folder +"AdvNet/traces/"+ bw_file_2 +" "+ parent_folder +"AdvNet/traces/"+ bw_file_2 +" "+ parent_folder +"packet-logs-2/ --uplink-queue-1=droptail --uplink-queue-args-1=packets=10 --uplink-queue-2=droptail --uplink-queue-args-2=packets=10"
-    command3 = "mptcpize run iperf -c 100.64.0.1 -Z "+ ref +"-t " + str(tot_duration / 1000)
+    command3 = "mptcpize run iperf -c 100.64.0.1 -Z "+ ref +" -t " + str(tot_duration / 1000)
     if command_type == 1:
         command2 = "sudo ip mptcp endpoint add 100.64.0.3 subflow 100.64.0.4"
     elif command_type == 2:
