@@ -1,6 +1,6 @@
 import argparse
 from single_cc.evaluate import evaluate
-from single_cc.problem import SingleCCProblem
+from GA.problem import CCProblem
 from mptcp.evaluate import evaluate as evaluate_mptcp
 from random_generator.random_generator import RandomGeneration
 import os, subprocess
@@ -41,7 +41,7 @@ if __name__ == "__main__":
 
         elif args.alg == 1: #GA
             start_time = time.perf_counter()
-            problem = SingleCCProblem(args.trace_length, args.l_bounds, args.u_bounds, args.ref, args.n_eval, evaluate, args.seed, args.fuzzing, start_time, args.total_time)
+            problem = CCProblem(args.trace_length, args.l_bounds, args.u_bounds, evaluate, args.seed, start_time, args.total_time, args.type, args.ref, args.n_eval, args.fuzzing)
             ga = AdvNetGA(problem, args.pop_size, args.seed, args.n_iter)
             result = ga.run()
             print(result.F, result.X, time.perf_counter() - start_time)
@@ -62,6 +62,13 @@ if __name__ == "__main__":
             randomGenerator.save()
         # score = evaluate_mptcp([1000,20,1000, 1020, 15, 500], 3)
         # print(score)
+        elif args.alg == 1: #GA
+            start_time = time.perf_counter()
+            problem = CCProblem(args.trace_length, args.l_bounds, args.u_bounds, evaluate_mptcp, args.seed, start_time, args.total_time, args.type, args.ref, args.n_eval, args.mptcp_type)
+            ga = AdvNetGA(problem, args.pop_size, args.seed, args.n_iter)
+            result = ga.run()
+            print(result.F, result.X, time.perf_counter() - start_time)
+            problem.save()
     
     os.system("rm traces/*")
     os.system("pkill -9 iperf")
