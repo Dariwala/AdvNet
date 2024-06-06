@@ -11,18 +11,20 @@ if __name__ == "__main__":
     parser.add_argument('--ref', type=str, default="cubic", help='Reference algorithm')
     args = parser.parse_args()
 
-    plt.figure(figsize=(10, 5))
-
-    for seed in range(1, 4):
-        file = "score_across_time_"+args.alg+"_"+args.ref+"_"+str(seed)+"_"+str(args.timesteps)+"_timesteps_"+args.type
-        with open("../results/"+file, 'rb') as f:
-            score_acorss_time = pickle.load(f)
-            x_values = [point[0] for point in score_acorss_time]
-            y_values = [point[1] for point in score_acorss_time]
-
-            plt.plot(x_values, y_values)
-    # Add title and labels
-    plt.title('Plot of Two Sets of (x, y) Pairs')
-    plt.xlabel('x-axis')
-    plt.ylabel('y-axis')
-    plt.show()
+    plt.figure(figsize=(10, 8))
+    for timesteps in range(6, 16, 3):
+        for seed in range(1, 4):
+            file = "score_across_time_"+args.alg+"_"+args.ref+"_"+str(seed)+"_"+str(timesteps)+"_timesteps_"+args.type
+            with open("../results/"+file, 'rb') as f:
+                score_acorss_time = pickle.load(f)
+                x_values = [point[0] for point in score_acorss_time]
+                y_values = [point[1] for point in score_acorss_time]
+                plt.subplot(2, 2, timesteps // 3 - 1)
+                plt.plot(x_values, y_values, label="seed="+str(seed))
+                plt.title('p_score vs time for '+args.ref+" with "+str(timesteps//3)+" timesteps")
+                plt.xlabel('time (seconds)')
+                plt.ylabel('p_score')
+                plt.legend()
+    plt.tight_layout()
+    # plt.show()
+    plt.savefig('score_vs_time_'+ args.type + "_" + args.alg + "_" + args.ref +'.pdf')
