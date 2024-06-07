@@ -35,7 +35,7 @@ class RandomGeneration():
             if self.type == 0: #single_cc
                 score = self.evaluate(trace, self.args[0], self.args[1], fuzzing = self.args[2])
             elif self.type == 1: #mptcp
-                score = self.evaluate(trace, self.args[0], self.args[1], self.args[2])
+                score = self.evaluate(trace, self.args[0], self.args[1], self.args[2], self.args[3])
 
             if score > best_score:
                 best_score = score
@@ -50,7 +50,7 @@ class RandomGeneration():
             else:
                 method = "advnet"
         elif self.type == 1:
-            method = "mptcp"
+            method = "mptcp_type_"+str(self.args[2])
         import pickle
-        with open("results/score_across_time_random_"+self.args[0]+"_"+str(self.seed)+"_"+str(self.trace_length)+"_timesteps_" + method, "wb") as f:
+        with open("results/score_across_time_random_"+self.args[0]+"_"+str(self.seed)+"_"+str(self.trace_length)+"_trace_length_" + method, "wb") as f:
             pickle.dump(self.max_score_vs_time, f)

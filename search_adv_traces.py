@@ -12,6 +12,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--type', type=int, default=0, help="0 for single_cc, 1 for mptcp")
     parser.add_argument('--mptcp_type', type=int, default=2, help='1 for mptcp vs tcp, 2 for mptcp vs baseline, 3 for mptcp one vs two links')
+    parser.add_argument('--kernel', type=str, default=6, help='5/6 for kernel version 5/6.4.x')
     parser.add_argument('--alg', type=int, default=0, help="0 for random generation, 1 for GA, 2 for BO")
     parser.add_argument('--trace_length', type=int, default=3)
     parser.add_argument('--seed', type=int, default=10)
@@ -54,9 +55,12 @@ if __name__ == "__main__":
         #     print(score)
     
     elif args.type == 1: #mptcp
-        os.system("mptcpize run iperf -s &")
+        if args.kernel == "6":
+            os.system("mptcpize run iperf -s &")
+        elif args.kernel == "5":
+            os.system("iperf -s &")
         if args.alg == 0: #Random
-            randomGenerator = RandomGeneration(args.trace_length, args.l_bounds, args.u_bounds, args.seed, evaluate_mptcp, args.type, args.ref, args.n_eval, args.mptcp_type)
+            randomGenerator = RandomGeneration(args.trace_length, args.l_bounds, args.u_bounds, args.seed, evaluate_mptcp, args.type, args.ref, args.n_eval, args.mptcp_type, args.kernel)
             trace, score = randomGenerator.run(args.total_time)
             print(trace, score)
             randomGenerator.save()
@@ -64,7 +68,7 @@ if __name__ == "__main__":
         # print(score)
         elif args.alg == 1: #GA
             start_time = time.perf_counter()
-            problem = CCProblem(args.trace_length, args.l_bounds, args.u_bounds, evaluate_mptcp, args.seed, start_time, args.total_time, args.type, args.ref, args.n_eval, args.mptcp_type)
+            problem = CCProblem(args.trace_length, args.l_bounds, args.u_bounds, evaluate_mptcp, args.seed, start_time, args.total_time, args.type, args.ref, args.n_eval, args.mptcp_type, args.kernel)
             ga = AdvNetGA(problem, args.pop_size, args.seed, args.n_iter)
             result = ga.run()
             print(result.F, result.X, time.perf_counter() - start_time)
