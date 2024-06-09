@@ -79,12 +79,17 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, log = False):
     lt_file_2 = create_delay_trace(latencies_2, durations_2)
 
     results = []
+    logs = []
     for _ in range(n_evals):
         throughput_mptcp, duration = run_iperf3_client(bw_file_1, lt_file_1, bw_file_2, lt_file_2, np.max([sum(durations_1), sum(durations_2)]), 1, ref, kernel)
         if mptcp_type == 2:
             throughput_baseline = (get_maximum_throughput(bw_file_1, duration) + get_maximum_throughput(bw_file_2, duration)) / (duration * 1024 * 1024)
             results.append((throughput_baseline - throughput_mptcp) / throughput_baseline)
+            logs.append([throughput_baseline, throughput_mptcp])
         elif mptcp_type == 3:
             throughput_mptcp_single_link, duration = run_iperf3_client(bw_file_1, lt_file_1, bw_file_2, lt_file_2, sum(durations_1), 2, ref, kernel)
             results.append((throughput_mptcp_single_link - throughput_mptcp) / throughput_mptcp_single_link)
+            logs.append([throughput_mptcp_single_link, throughput_mptcp])
+    if log:
+        print(logs)
     return np.median(results)
