@@ -64,15 +64,16 @@ if __name__ == "__main__":
             trace, score = randomGenerator.run(args.total_time)
             print(trace, score)
             randomGenerator.save()
-        # score = evaluate_mptcp([1000,20,1000, 1020, 15, 500], 3)
-        # print(score)
         elif args.alg == 1: #GA
             start_time = time.perf_counter()
             problem = CCProblem(args.trace_length, args.l_bounds, args.u_bounds, evaluate_mptcp, args.seed, start_time, args.total_time, args.type, args.ref, args.n_eval, args.mptcp_type, args.kernel)
             ga = AdvNetGA(problem, args.pop_size, args.seed, args.n_iter)
             result = ga.run()
-            print(result.F, result.X, time.perf_counter() - start_time)
+            with open("mptcp_results", "a") as f:
+                print(args.ref, args.seed, -result.F[0], result.X, time.perf_counter() - start_time, file = f)
             problem.save()
+        # score = evaluate_mptcp([2061,20,2844, 1648, 16, 2596], args.ref, args.n_eval, args.mptcp_type, args.kernel, True)
+        # print(score)
     
     os.system("rm traces/*")
     os.system("pkill -9 iperf")
