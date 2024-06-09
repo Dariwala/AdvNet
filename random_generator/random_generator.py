@@ -3,7 +3,7 @@ import time
 import numpy as np
 
 class RandomGeneration():
-    def __init__(self, trace_length, l_bounds, u_bounds, seed, evaluate, ref, n_eval, fuzzing):
+    def __init__(self, trace_length, l_bounds, u_bounds, seed, evaluate, type, *args):
         assert len(l_bounds) == len(u_bounds) == trace_length
         self.seed = seed
         self.l_bounds = l_bounds
@@ -11,9 +11,12 @@ class RandomGeneration():
         self.trace_length = trace_length
         self.generator = random.Random(self.seed)
         self.evaluate = evaluate
-        self.ref = ref
-        self.n_eval = n_eval
-        self.fuzzing = fuzzing
+        self.args = args
+        self.type = type
+        self.max_score_vs_time = []
+        # self.ref = ref
+        # self.n_eval = n_eval
+        # self.fuzzing = fuzzing
 
     def generate_trace(self):
         trace = []
@@ -29,9 +32,25 @@ class RandomGeneration():
         best_trace = None
         while time.perf_counter() - start_time < total_time:
             trace = self.generate_trace()
-            score = self.evaluate(trace, self.ref, self.n_eval, fuzzing = self.fuzzing)
+            if self.type == 0: #single_cc
+                score = self.evaluate(trace, self.args[0], self.args[1], fuzzing = self.args[2])
+            elif self.type == 1: #mptcp
+                score = self.evaluate(trace, self.args[0], self.args[1], self.args[2], self.args[3])
 
             if score > best_score:
                 best_score = score
                 best_trace = trace
+                self.max_score_vs_time.append([time.perf_counter() - start_time, best_score])
         return best_trace, best_score
+    
+    def save(self):
+        if self.type == 0:
+            if self.args[2]:
+                method = "fuzzing"
+            else:
+                method = "advnet"
+        elif self.type == 1:
+            method = "mptcp_type_"+str(self.args[2])
+        import pickle
+        with open("results/score_across_time_random_"+self.args[0]+"_"+str(self.seed)+"_"+str(self.trace_length)+"_trace_length_" + method, "wb") as f:
+            pickle.dump(self.max_score_vs_time, f)
