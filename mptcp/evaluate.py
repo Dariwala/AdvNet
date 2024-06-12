@@ -82,6 +82,9 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, log = False, simplify = Fa
     scale_up(latencies_1, 5)
     scale_up(latencies_2, 5)
 
+    scale_up(durations_1, 50)
+    scale_up(durations_2, 50)
+
     queue_length *= 10
 
     bw_file_1 = create_bandwidth_trace(bandwidths_1, durations_1)
