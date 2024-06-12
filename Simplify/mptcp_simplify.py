@@ -16,8 +16,8 @@ class MpTcpSimplify():
         self.final_p_score = None
 
     def compute_score(self, trace):
-        score_1 = SingleCCSimplify([0], 0, 0, "").compute_score(trace[ : len(trace) // 2])
-        score_2 = SingleCCSimplify([0], 0, 0, "").compute_score(trace[len(trace) // 2 : ])
+        score_1 = SingleCCSimplify([0], 0, 0, "", True).compute_score(trace[ : len(trace) // 2])
+        score_2 = SingleCCSimplify([0], 0, 0, "", True).compute_score(trace[len(trace) // 2 : ])
 
         return 0.5 * (score_1 + score_2)
     
@@ -38,7 +38,7 @@ class MpTcpSimplify():
             short_trace = self.slice(candidate_length, trace)
             org_trace = short_trace + rest_of_the_trace if append else rest_of_the_trace + short_trace
             complexity_score = self.compute_score(org_trace)
-            performance_score = evaluate(org_trace, self.ref, 3, self.mptcp_type, self.kernel)
+            performance_score = evaluate(org_trace, self.ref, 3, self.mptcp_type, self.kernel, simplify = True, index = len(short_trace) if append else len(rest_of_the_trace))
 
             if self.check_validity(complexity_score, performance_score):
                 self.final_p_score = performance_score
@@ -57,7 +57,7 @@ class MpTcpSimplify():
                 old = short_trace[i]
                 short_trace[i] = round(short_trace[i-1] * (1 + pct / 100))
                 org_trace = short_trace + rest_of_the_trace if append else rest_of_the_trace + short_trace
-                p_score = evaluate(org_trace, self.ref, 3, self.mptcp_type, self.kernel)
+                p_score = evaluate(org_trace, self.ref, 3, self.mptcp_type, self.kernel, simplify = True, index = len(short_trace) if append else len(rest_of_the_trace))
                 c_score = self.compute_score(org_trace)
 
                 if self.check_validity(c_score, p_score) == False:
@@ -83,5 +83,5 @@ class MpTcpSimplify():
             self.reduce_variance(shortened_right_trace, shortened_left_trace, False)
             shortened_trace = shortened_left_trace + shortened_right_trace
             left_index = len(shortened_left_trace)
-        return shortened_trace, evaluate(shortened_trace, self.ref, 3, self.mptcp_type, self.kernel), self.compute_score(shortened_trace)
+        return shortened_trace, self.final_p_score, self.compute_score(shortened_trace), self.initial_p_score, self.initial_c_score
         

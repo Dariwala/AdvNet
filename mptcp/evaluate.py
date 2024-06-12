@@ -1,4 +1,4 @@
-from mptcp.split_trace import split_trace
+from mptcp.split_trace import split_trace, split_trace_simplify
 from utils.generate_bandwidth_trace import create_trace as create_bandwidth_trace
 from utils.generate_delay_trace import create_trace as create_delay_trace
 from utils.read_uplink import read_uplink
@@ -69,8 +69,11 @@ def get_maximum_throughput(bw_file, actual_duration):
     return tot_bytes * 8 * 1000
     
 
-def evaluate(trace, ref, n_evals, mptcp_type, kernel, log = False):
-    bandwidths_1, latencies_1, durations_1, bandwidths_2, latencies_2, durations_2 = split_trace(trace)
+def evaluate(trace, ref, n_evals, mptcp_type, kernel, log = False, simplify = False, index = -1):
+    if not simplify:
+        bandwidths_1, latencies_1, durations_1, bandwidths_2, latencies_2, durations_2 = split_trace(trace)
+    else:
+        bandwidths_1, latencies_1, durations_1, bandwidths_2, latencies_2, durations_2 = split_trace_simplify(trace, index)
 
     bw_file_1 = create_bandwidth_trace(bandwidths_1, durations_1)
     lt_file_1 = create_delay_trace(latencies_1, durations_1)

@@ -3,7 +3,7 @@ from single_cc.evaluate import evaluate
 import copy
 
 class SingleCCSimplify():
-    def __init__(self, initial_trace, pc, mpd, ref):
+    def __init__(self, initial_trace, pc, mpd, ref, mptcp=False):
         self.initial_trace = initial_trace
         self.pc = pc #maximum performance to complexity score ratio that would be tolerated by the simplification module
         self.mpd = mpd #maximum percentage decrease of performance that would be tolerated
@@ -12,8 +12,9 @@ class SingleCCSimplify():
         self.max_length = 10
         self.max_bw_variation = 3000
         self.max_lt_variation = 15
-        self.initial_p_score = evaluate(self.initial_trace, self.ref, 3)
-        self.initial_c_score = self.compute_score(initial_trace)
+        if not mptcp:
+            self.initial_p_score = evaluate(self.initial_trace, self.ref, 3)
+            self.initial_c_score = self.compute_score(initial_trace)
         self.final_p_score = None
 
     # def compute_score(self, trace):
