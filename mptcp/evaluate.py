@@ -79,8 +79,7 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, log = False, simplify = Fa
         scale_up(latencies_1, 5)
         scale_up(latencies_2, 5)
 
-        scale_up(durations_1, 50)
-        scale_up(durations_2, 50)
+        scale_up(durations, 50)
     else:
         bandwidths_1, latencies_1, durations_1, bandwidths_2, latencies_2, durations_2, queue_length = split_trace_simplify(trace, index)
 
