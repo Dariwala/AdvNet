@@ -22,15 +22,21 @@ def create_commands(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, co
             {command3}
         """
     elif kernel == "5":
+        command0 = "iperf -s &"
         command2 = "sleep 0.5"
         command3 = "sudo sysctl -w net.ipv4.tcp_congestion_control="+ref
         command4 = "iperf -c 100.64.0.1 -t " + str(tot_duration / 1000)
+        command5 = "exit"
+        command6 = "pkill -9 iperf"
 
         commands = f"""
+            {command0}
             {command1}
             {command2}
             {command3}
             {command4}
+            {command5}
+            {command6}
         """
     return commands
 
