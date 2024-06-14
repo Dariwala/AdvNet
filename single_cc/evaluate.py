@@ -96,7 +96,7 @@ def evaluate(trace, ref, n_evals, log = False, fuzzing = False):
         results.append((throughput_baseline - throughput_ref) / throughput_baseline)
     
     if log:
-        print(logs)
+        return logs
 
     return np.median(np.array(results))#sum(results) / n_evals
 

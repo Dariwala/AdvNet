@@ -29,15 +29,19 @@ if __name__ == "__main__":
     parser.add_argument('--trace', nargs='+', type=int, default=[4000,20,3000], help='Trace to evaluate')
     parser.add_argument('--ref', type=str, default="cubic", help='Reference algorithm')
     parser.add_argument('--uplink_file_name', type = str, help = "Uplink file name")
+    parser.add_argument('--fuzzing', action='store_true', help='Whether to enable link fuzzing of cc-fuzz or not')
     args = parser.parse_args()
     os.system("iperf -s &")
-    score = evaluate(args.trace, args.ref, 3, True, True)
-    print(score)
+    with open("log", "w") as f:
+        for _ in range(100):
+            score = evaluate(args.trace, args.ref, 1, True, args.fuzzing)
+            print(score)
+            print(score[0][0], score[0][1], file = f)
     os.system("pkill -9 iperf")
 
-    os.system("cp /home/shehaba2//packet-logs/uplink results/uplink_" + args.uplink_file_name)
+    os.system("cp /home/shehaba2/packet-logs/uplink results/uplink_" + args.uplink_file_name)
 
-    # bandwidths = get_continuous_throughput("results/uplink_" + args.uplink_file_name)
+    bandwidths = get_continuous_throughput("results/uplink_" + args.uplink_file_name)
 
     # for time, bandwidth, throughput in bandwidths:
     #     print(time, bandwidth, throughput)
