@@ -7,6 +7,10 @@ if __name__ == "__main__":
     parser.add_argument('--kernel', type=str, default=6, help='5/6 for kernel version 5/6.4.x')
     parser.add_argument('--trace', nargs='+', type=int, default=[4000,20,3000], help='Trace to evaluate')
     parser.add_argument('--ref', type=str, default="cubic", help='Reference algorithm')
+    parser.add_argument('--n_iter', type=int, default=5, help='Number of iterations for GA')
     args = parser.parse_args()
-    score = evaluate(args.trace, args.ref, 1, args.mptcp_type, args.kernel)
-    print(score)
+
+    with open("noise", "w") as f:
+        for _ in range(args.n_iter):
+            score = evaluate(args.trace, args.ref, 1, args.mptcp_type, args.kernel, True)
+            print(score[0][0], score[0][1])
