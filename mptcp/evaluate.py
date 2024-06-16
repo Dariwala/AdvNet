@@ -33,7 +33,7 @@ def create_commands(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, co
         if command_type == 1 or command_type == 2:
             command4 = "iperf -c 100.64.0.1 -t " + str(tot_duration / 1000)
         elif command_type == 3 or command_type == 4:
-            command4 = "iperf -c 100.64.0.1 -n " + str(tot_duration) + "K" #tot_duration is tot_size here
+            command4 = "/usr/bin/time -f \"%e\" iperf -c 100.64.0.1 -n " + str(tot_duration) + "K" #tot_duration is tot_size here
 
         commands = f"""
             {command1}
@@ -46,8 +46,6 @@ def create_commands(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, co
 def run_iperf3_client(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, command_type, ref, kernel, queue_length):
     shell = subprocess.Popen("/bin/bash", stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     commands = create_commands(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, command_type, ref, kernel, queue_length)
-    import time
-    start_time = time.perf_counter()
     output, errors = shell.communicate(commands)
 
     if command_type == 1 or command_type == 2:
@@ -58,9 +56,7 @@ def run_iperf3_client(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, 
         elif command_type == 2:
             return tot_bytes_1 * 8 * 1000 / (duration_1 * 1024 * 1024), duration_1
     elif command_type == 3 or command_type == 4:
-        end_time = time.perf_counter()
-        print("Time", end_time - start_time)
-        return 1
+        return float(errors)
 
 def get_maximum_throughput(bw_file, actual_duration):
     # tot_data = 0
@@ -120,6 +116,7 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, log = False, simplify = Fa
             finish_time_mptcp = run_iperf3_client(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_size, 3, ref, kernel, queue_length)
             finish_time_single_link = run_iperf3_client(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_size, 4, ref, kernel, queue_length)
             results.append((finish_time_mptcp - finish_time_single_link) / finish_time_mptcp)
+            logs.append([finish_time_mptcp, finish_time_single_link])
         if mptcp_type == 2:
             throughput_baseline = (get_maximum_throughput(bw_file_1, duration) + get_maximum_throughput(bw_file_2, duration)) / (duration * 1024 * 1024)
             results.append((throughput_baseline - throughput_mptcp) / throughput_baseline)
