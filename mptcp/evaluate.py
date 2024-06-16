@@ -8,9 +8,15 @@ from config import parent_folder
 import numpy as np
 
 def create_commands(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, command_type, ref, kernel, queue_length):
-    command1 = "mm-multipath 14 "+ parent_folder +"AdvNet/traces/"+ lt_file_1 +" "+ parent_folder + "AdvNet/traces/" + bw_file_1 +" "+ parent_folder + "AdvNet/traces/" + bw_file_1 +" "+ parent_folder +"packet-logs/ "+ parent_folder +"AdvNet/traces/"+ lt_file_2 +" "+ parent_folder +"AdvNet/traces/"+ bw_file_2 +" "+ parent_folder +"AdvNet/traces/"+ bw_file_2 +" "+ parent_folder +"packet-logs-2/ --uplink-queue-1=droptail --uplink-queue-args-1=packets="+str(queue_length)+" --uplink-queue-2=droptail --uplink-queue-args-2=packets="+str(queue_length)
+    if command_type == 1 or command_type == 2 or command_type == 3:
+        command1 = "mm-multipath 14 "+ parent_folder +"AdvNet/traces/"+ lt_file_1 +" "+ parent_folder + "AdvNet/traces/" + bw_file_1 +" "+ parent_folder + "AdvNet/traces/" + bw_file_1 +" "+ parent_folder +"packet-logs/ "+ parent_folder +"AdvNet/traces/"+ lt_file_2 +" "+ parent_folder +"AdvNet/traces/"+ bw_file_2 +" "+ parent_folder +"AdvNet/traces/"+ bw_file_2 +" "+ parent_folder +"packet-logs-2/ --uplink-queue-1=droptail --uplink-queue-args-1=packets="+str(queue_length)+" --uplink-queue-2=droptail --uplink-queue-args-2=packets="+str(queue_length)
+    elif command_type == 4:
+        command1 = "mm-delay-link-rrc 10 "+ parent_folder +"AdvNet/traces/"+lt_file_1+" "+ parent_folder +"AdvNet/traces/"+bw_file_1+" "+ parent_folder +"AdvNet/traces/"+bw_file_1+" "+ parent_folder +"packet-logs/ --uplink-log="+ parent_folder +"packet-logs/uplink --downlink-log="+ parent_folder +"packet-logs/downlink --uplink-queue=droptail --uplink-queue-args=packets="+str(queue_length)
     if kernel == "6":
-        command3 = "mptcpize run iperf -c 100.64.0.1 -Z "+ ref +" -t " + str(tot_duration / 1000)
+        if command_type == 1 or command_type == 2:
+            command3 = "mptcpize run iperf -c 100.64.0.1 -Z "+ ref +" -t " + str(tot_duration / 1000)
+        elif command_type == 3:
+            command3 = "mptcpize run /usr/bin/time -f \"%e\" iperf -c 100.64.0.1 -Z "+ ref +" -n " + str(tot_duration) + "K" #tot_duration is tot_size here
         if command_type == 1:
             command2 = "sudo ip mptcp endpoint add 100.64.0.3 subflow 100.64.0.4"
         elif command_type == 2:
@@ -22,21 +28,18 @@ def create_commands(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, co
             {command3}
         """
     elif kernel == "5":
-        command0 = "iperf -s &"
         command2 = "sleep 0.5"
         command3 = "sudo sysctl -w net.ipv4.tcp_congestion_control="+ref
-        command4 = "iperf -c 100.64.0.1 -t " + str(tot_duration / 1000)
-        command5 = "exit"
-        command6 = "pkill -9 iperf"
+        if command_type == 1 or command_type == 2:
+            command4 = "iperf -c 100.64.0.1 -t " + str(tot_duration / 1000)
+        elif command_type == 3:
+            command4 = "/usr/bin/time -f \"%e\" iperf -c 100.64.0.1 -n " + str(tot_duration) + "K" #tot_duration is tot_size here
 
         commands = f"""
-            {command0}
             {command1}
             {command2}
             {command3}
             {command4}
-            {command5}
-            {command6}
         """
     return commands
 
@@ -45,12 +48,16 @@ def run_iperf3_client(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, 
     commands = create_commands(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, command_type, ref, kernel, queue_length)
     output, errors = shell.communicate(commands)
 
-    tot_bytes_1, duration_1 = read_uplink(parent_folder + "packet-logs/queue-service-log-uplink")
-    if command_type == 1:
-        tot_bytes_2, duration_2 = read_uplink(parent_folder + "packet-logs-2/queue-service-log-uplink")
-        return (tot_bytes_1 + tot_bytes_2) * 8 * 1000 / (np.max([duration_1, duration_2]) * 1024 * 1024), np.max([duration_1, duration_2])
-    elif command_type == 2:
-        return tot_bytes_1 * 8 * 1000 / (duration_1 * 1024 * 1024), duration_1
+    if command_type == 1 or command_type == 2:
+        tot_bytes_1, duration_1 = read_uplink(parent_folder + "packet-logs/queue-service-log-uplink")
+        if command_type == 1:
+            tot_bytes_2, duration_2 = read_uplink(parent_folder + "packet-logs-2/queue-service-log-uplink")
+            return (tot_bytes_1 + tot_bytes_2) * 8 * 1000 / (np.max([duration_1, duration_2]) * 1024 * 1024), np.max([duration_1, duration_2])
+        elif command_type == 2:
+            return tot_bytes_1 * 8 * 1000 / (duration_1 * 1024 * 1024), duration_1
+    elif command_type == 3 or command_type == 4:
+        print(output.split('\n')[-1])
+        return 1
 
 def get_maximum_throughput(bw_file, actual_duration):
     # tot_data = 0
@@ -86,10 +93,14 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, log = False, simplify = Fa
         scale_up(latencies_2, 5)
 
         scale_up(durations, 50)
+
+        queue_length *= 10
+
+        if mptcp_type == 4:
+            tot_size = durations[0]
+            durations = [1000]
     else:
         bandwidths_1, latencies_1, durations_1, bandwidths_2, latencies_2, durations_2, queue_length = split_trace_simplify(trace, index)
-
-    queue_length *= 10
 
     bw_file_1 = create_bandwidth_trace(bandwidths_1, durations)
     lt_file_1 = create_delay_trace(latencies_1, durations)
@@ -100,7 +111,12 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, log = False, simplify = Fa
     results = []
     logs = []
     for _ in range(n_evals):
-        throughput_mptcp, duration = run_iperf3_client(bw_file_1, lt_file_1, bw_file_2, lt_file_2, sum(durations), 1, ref, kernel, queue_length)
+        if mptcp_type == 2 or mptcp_type == 3:
+            throughput_mptcp, duration = run_iperf3_client(bw_file_1, lt_file_1, bw_file_2, lt_file_2, sum(durations), 1, ref, kernel, queue_length)
+        elif mptcp_type == 4:
+            finish_time_mptcp = run_iperf3_client(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_size, 3, ref, kernel, queue_length)
+            finish_time_single_link = run_iperf3_client(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_size, 4, ref, kernel, queue_length)
+            results.append((finish_time_mptcp - finish_time_single_link) / finish_time_mptcp)
         if mptcp_type == 2:
             throughput_baseline = (get_maximum_throughput(bw_file_1, duration) + get_maximum_throughput(bw_file_2, duration)) / (duration * 1024 * 1024)
             results.append((throughput_baseline - throughput_mptcp) / throughput_baseline)
@@ -110,5 +126,5 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, log = False, simplify = Fa
             results.append((throughput_mptcp_single_link - throughput_mptcp) / throughput_mptcp_single_link)
             logs.append([throughput_mptcp_single_link, throughput_mptcp])
     if log:
-        print(logs)
+        return logs
     return np.median(results)
