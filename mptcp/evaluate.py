@@ -32,8 +32,8 @@ def create_commands(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, co
         command3 = "sudo sysctl -w net.ipv4.tcp_congestion_control="+ref
         if command_type == 1 or command_type == 2:
             command4 = "iperf -c 100.64.0.1 -t " + str(tot_duration / 1000)
-        elif command_type == 3:
-            command4 = "/usr/bin/time -f \"%e\" iperf -c 100.64.0.1 -n " + str(tot_duration) + "K" #tot_duration is tot_size here
+        elif command_type == 3 or command_type == 4:
+            command4 = "iperf -c 100.64.0.1 -n " + str(tot_duration) + "K" #tot_duration is tot_size here
 
         commands = f"""
             {command1}
@@ -46,6 +46,8 @@ def create_commands(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, co
 def run_iperf3_client(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, command_type, ref, kernel, queue_length):
     shell = subprocess.Popen("/bin/bash", stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     commands = create_commands(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, command_type, ref, kernel, queue_length)
+    import time
+    start_time = time.perf_counter()
     output, errors = shell.communicate(commands)
 
     if command_type == 1 or command_type == 2:
@@ -56,7 +58,8 @@ def run_iperf3_client(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, 
         elif command_type == 2:
             return tot_bytes_1 * 8 * 1000 / (duration_1 * 1024 * 1024), duration_1
     elif command_type == 3 or command_type == 4:
-        print(output.split('\n')[-1])
+        end_time = time.perf_counter()
+        print("Time", end_time - start_time)
         return 1
 
 def get_maximum_throughput(bw_file, actual_duration):
