@@ -30,7 +30,7 @@ def read_uplink():
                 tot_bytes += int(line[2])
     return tot_bytes, duration
 
-def run_iperf_client(server_ip, duration, alg, bw_file, lt_file):
+def run_iperf_client(server_ip, duration, alg, bw_file, lt_file, queue_length = 10):
     # Run iperf client and capture output
     # while True:
     #     result = subprocess.run(['iperf', '-c', server_ip, '-t', str(duration / 1000), '-Z', alg], stdout=subprocess.PIPE, text=True)
@@ -41,7 +41,8 @@ def run_iperf_client(server_ip, duration, alg, bw_file, lt_file):
     #     else:
     #         return result.stdout
     # print("mm-delay-link-rrc 8 ~/AdvNet/traces/"+lt_file+" ~/AdvNet/traces/"+bw_file+" ~/AdvNet/traces/"+bw_file+" ~/packet-logs/ --uplink-queue=droptail --uplink-queue-args=packets=100 iperf -c " + server_ip + " -Z " + alg + " -t " + str(duration / 1000) + " >> temp")
-    os.system("mm-delay-link-rrc 10 "+ parent_folder +"AdvNet/traces/"+lt_file+" "+ parent_folder +"AdvNet/traces/"+bw_file+" "+ parent_folder +"AdvNet/traces/"+bw_file+" "+ parent_folder +"packet-logs/ --uplink-log="+ parent_folder +"packet-logs/uplink --downlink-log="+ parent_folder +"packet-logs/downlink --uplink-queue=droptail --uplink-queue-args=packets=10 sudo iperf -c " + server_ip + " -Z " + alg + " -t " + str(duration / 1000))
+    os.system("sleep 0.5")
+    os.system("mm-delay-link-rrc 10 "+ parent_folder +"AdvNet/traces/"+lt_file+" "+ parent_folder +"AdvNet/traces/"+bw_file+" "+ parent_folder +"AdvNet/traces/"+bw_file+" "+ parent_folder +"packet-logs/ --uplink-log="+ parent_folder +"packet-logs/uplink --downlink-log="+ parent_folder +"packet-logs/downlink --uplink-queue=droptail --uplink-queue-args=packets="+ str(queue_length) +" sudo iperf -c " + server_ip + " -Z " + alg + " -t " + str(duration / 1000))
     tot_bytes, duration = read_uplink()
     return tot_bytes * 8 * 1000 / (duration * 1024 * 1024), duration
 

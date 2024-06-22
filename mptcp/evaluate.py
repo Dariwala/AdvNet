@@ -6,12 +6,13 @@ from utils.read_uplink import read_uplink
 import subprocess
 from config import parent_folder
 import numpy as np
+from single_cc.evaluate import run_iperf_client as run_iperf_client_single_cc
 
 def create_commands(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, command_type, ref, kernel, queue_length):
     if command_type == 1 or command_type == 2 or command_type == 3:
         command1 = "mm-multipath 14 "+ parent_folder +"AdvNet/traces/"+ lt_file_1 +" "+ parent_folder + "AdvNet/traces/" + bw_file_1 +" "+ parent_folder + "AdvNet/traces/" + bw_file_1 +" "+ parent_folder +"packet-logs/ "+ parent_folder +"AdvNet/traces/"+ lt_file_2 +" "+ parent_folder +"AdvNet/traces/"+ bw_file_2 +" "+ parent_folder +"AdvNet/traces/"+ bw_file_2 +" "+ parent_folder +"packet-logs-2/ --uplink-queue-1=droptail --uplink-queue-args-1=packets="+str(queue_length)+" --uplink-queue-2=droptail --uplink-queue-args-2=packets="+str(queue_length)
     elif command_type == 4:
-        command1 = "mm-delay-link-rrc 10 "+ parent_folder +"AdvNet/traces/"+lt_file_1+" "+ parent_folder +"AdvNet/traces/"+bw_file_1+" "+ parent_folder +"AdvNet/traces/"+bw_file_1+" "+ parent_folder +"packet-logs/ --uplink-log="+ parent_folder +"packet-logs/uplink --downlink-log="+ parent_folder +"packet-logs/downlink --uplink-queue=droptail --uplink-queue-args=packets="+str(queue_length)
+        command1 = "mm-delay-link-rrc 10 "+ parent_folder +"AdvNet/traces/"+lt_file_1+" "+ parent_folder +"AdvNet/traces/"+bw_file_1+" "+ parent_folder +"AdvNet/traces/"+bw_file_1+" "+ parent_folder +"packet-logs/ --uplink-log="+ parent_folder +"packet-logs/uplink --downlink-log="+ parent_folder +"packet-logs/downlink --uplink-queue=droptail --uplink-queue-args=packets="+str(queue_length)#+" sudo iperf -c 100.64.0.1 -Z " + ref + " -t " + str(tot_duration / 1000)
     if kernel == "6":
         if command_type == 1 or command_type == 2:
             command3 = "mptcpize run iperf -c 100.64.0.1 -Z "+ ref +" -t " + str(tot_duration / 1000)
@@ -53,7 +54,7 @@ def run_iperf3_client(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, 
         if command_type == 1:
             tot_bytes_2, duration_2 = read_uplink(parent_folder + "packet-logs-2/queue-service-log-uplink")
             return (tot_bytes_1 + tot_bytes_2) * 8 * 1000 / (np.max([duration_1, duration_2]) * 1024 * 1024), np.max([duration_1, duration_2])
-        elif command_type == 2:
+        elif command_type == 2:#obsolete
             return tot_bytes_1 * 8 * 1000 / (duration_1 * 1024 * 1024), duration_1
     elif command_type == 3 or command_type == 4:
         return float(errors)
@@ -122,7 +123,7 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, log = False, simplify = Fa
             results.append((throughput_baseline - throughput_mptcp) / throughput_baseline)
             logs.append([throughput_baseline, throughput_mptcp])
         elif mptcp_type == 3:
-            throughput_mptcp_single_link, duration = run_iperf3_client(bw_file_1, lt_file_1, bw_file_2, lt_file_2, sum(durations), 2, ref, kernel, queue_length)
+            throughput_mptcp_single_link, duration = run_iperf_client_single_cc("100.64.0.1", sum(durations), ref, bw_file_1, lt_file_1, queue_length)
             results.append((throughput_mptcp_single_link - throughput_mptcp) / throughput_mptcp_single_link)
             logs.append([throughput_mptcp_single_link, throughput_mptcp])
     if log:
