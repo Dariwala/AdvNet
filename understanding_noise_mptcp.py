@@ -11,6 +11,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     with open("noise", "w") as f:
-        for _ in range(args.n_iter):
-            score = evaluate(args.trace, args.ref, 1, args.mptcp_type, args.kernel, True)
-            print(score[0][0], score[0][1])
+        for _ in range(1):
+            score = evaluate(args.trace, args.ref, args.n_iter, args.mptcp_type, args.kernel, True)
+            print(score[0][0], score[0][1], file = f)
