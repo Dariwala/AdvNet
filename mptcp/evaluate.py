@@ -38,6 +38,8 @@ def create_commands(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, co
             command4 = "/usr/bin/time -f \"%e\" iperf -c 100.64.0.1 -n " + str(tot_duration) + "K" #tot_duration is tot_size here
         command5 = "pkill -9 iperf"
         command6 = "iperf -s &"
+        os.system(command5)
+        os.system(command6)
         commands = f"""
             {command1}
             {command2}
