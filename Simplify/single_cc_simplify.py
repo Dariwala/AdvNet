@@ -9,9 +9,9 @@ class SingleCCSimplify():
         self.mpd = mpd #maximum percentage decrease of performance that would be tolerated
         self.ref = ref
         self.min_length = 1
-        self.max_length = 10
-        self.max_bw_variation = 3000
-        self.max_lt_variation = 15
+        self.max_length = 5
+        self.max_bw_variation = 59500
+        self.max_lt_variation = 95
         if not mptcp:
             self.initial_p_score = evaluate(self.initial_trace, self.ref, 3)
             self.initial_c_score = self.compute_score(initial_trace)
@@ -41,7 +41,8 @@ class SingleCCSimplify():
         for i in range(number_of_timesteps + 1, 2 * number_of_timesteps):
             score_variation += np.abs(trace[i] - trace[i-1]) / self.max_lt_variation
             count += 1
-        score_variation /= count
+        if count != 0:
+            score_variation /= count
 
         return 0.5 * (score_length + score_variation)
 

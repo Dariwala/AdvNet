@@ -8,6 +8,7 @@ from config import parent_folder
 import numpy as np
 import os
 from single_cc.evaluate import run_iperf_client as run_iperf_client_single_cc
+from mptcp.convert import convert
 
 def create_commands(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, command_type, ref, kernel, queue_length):
     if command_type == 1 or command_type == 2 or command_type == 3:
@@ -89,34 +90,28 @@ def get_maximum_throughput(bw_file, actual_duration):
 
 def evaluate(trace, ref, n_evals, mptcp_type, kernel, log = False, simplify = False, index = -1):
     if not simplify:
+        trace = convert(trace)
         bandwidths_1, latencies_1, durations, bandwidths_2, latencies_2, queue_length = split_trace(trace)
-        scale_up(bandwidths_1, 500)
-        scale_up(bandwidths_2, 500)
-
-        scale_up(latencies_1, 5)
-        scale_up(latencies_2, 5)
-
-        scale_up(durations, 50)
-
-        queue_length *= 10
-
+        durations_1 = durations
+        durations_2 = durations
         if mptcp_type == 4:
             tot_size = durations[0]
             durations = [1000]
     else:
+        print(trace, index)
         bandwidths_1, latencies_1, durations_1, bandwidths_2, latencies_2, durations_2, queue_length = split_trace_simplify(trace, index)
 
-    bw_file_1 = create_bandwidth_trace(bandwidths_1, durations)
-    lt_file_1 = create_delay_trace(latencies_1, durations)
+    bw_file_1 = create_bandwidth_trace(bandwidths_1, durations_1)
+    lt_file_1 = create_delay_trace(latencies_1, durations_1)
 
-    bw_file_2 = create_bandwidth_trace(bandwidths_2, durations)
-    lt_file_2 = create_delay_trace(latencies_2, durations)
+    bw_file_2 = create_bandwidth_trace(bandwidths_2, durations_2)
+    lt_file_2 = create_delay_trace(latencies_2, durations_2)
 
     results = []
     logs = []
     for _ in range(n_evals):
         if mptcp_type == 2 or mptcp_type == 3:
-            throughput_mptcp, duration = run_iperf3_client(bw_file_1, lt_file_1, bw_file_2, lt_file_2, sum(durations), 1, ref, kernel, queue_length)
+            throughput_mptcp, duration = run_iperf3_client(bw_file_1, lt_file_1, bw_file_2, lt_file_2, max(sum(durations_1), sum(durations_2)), 1, ref, kernel, queue_length)
         elif mptcp_type == 4:
             finish_time_mptcp = run_iperf3_client(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_size, 3, ref, kernel, queue_length)
             finish_time_single_link = run_iperf3_client(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_size, 4, ref, kernel, queue_length)
@@ -127,19 +122,19 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, log = False, simplify = Fa
             results.append((throughput_baseline - throughput_mptcp) / throughput_baseline)
             logs.append([throughput_baseline, throughput_mptcp])
         elif mptcp_type == 3:
-            throughput_mptcp_single_link, duration = run_iperf_client_single_cc("100.64.0.1", sum(durations), ref, bw_file_1, lt_file_1, queue_length)
+            throughput_mptcp_single_link, duration = run_iperf_client_single_cc("100.64.0.1", sum(durations_1), ref, bw_file_1, lt_file_1, queue_length)
             results.append((throughput_mptcp_single_link - throughput_mptcp) / throughput_mptcp_single_link)
             logs.append([throughput_mptcp_single_link, throughput_mptcp])
     if mptcp_type == 1:
         throughput_mptcp_max = -1.0
         throughput_mptcp_single_link_max = -1.0
         for _ in range(n_evals):
-            throughput_mptcp, duration = run_iperf3_client(bw_file_1, lt_file_1, bw_file_2, lt_file_2, sum(durations), 1, ref, kernel, queue_length)
+            throughput_mptcp, duration = run_iperf3_client(bw_file_1, lt_file_1, bw_file_2, lt_file_2, max(sum(durations_1), sum(durations_2)), 1, ref, kernel, queue_length)
             if throughput_mptcp > throughput_mptcp_max:
                 throughput_mptcp_max = throughput_mptcp
         os.system("sleep 1")
         for _ in range(n_evals):
-            throughput_mptcp_single_link, duration = run_iperf_client_single_cc("100.64.0.1", sum(durations), ref, bw_file_1, lt_file_1, queue_length)
+            throughput_mptcp_single_link, duration = run_iperf_client_single_cc("100.64.0.1", sum(durations_1), ref, bw_file_1, lt_file_1, queue_length)
             if throughput_mptcp_single_link > throughput_mptcp_single_link_max:
                 throughput_mptcp_single_link_max = throughput_mptcp_single_link
         logs.append([throughput_mptcp_single_link_max, throughput_mptcp_max])
