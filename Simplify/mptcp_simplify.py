@@ -15,7 +15,7 @@ class MpTcpSimplify():
         self.initial_trace = self.initial_trace[:-1]
         self.initial_p_score = evaluate(self.initial_trace + [self.queue_length], self.ref, 3, self.mptcp_type, self.kernel, False, True, (len(initial_trace) - 1) // 2)
         self.initial_c_score = self.compute_score(self.initial_trace, len(self.initial_trace) // 2)
-        self.final_p_score = None
+        self.final_p_score = self.initial_p_score
 
     def compute_score(self, trace, split_index):
         score_1 = SingleCCSimplify([0], 0, 0, "", True).compute_score(trace[ : split_index])
