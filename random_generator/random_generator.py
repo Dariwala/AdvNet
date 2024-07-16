@@ -36,6 +36,8 @@ class RandomGeneration():
                 score = self.evaluate(trace, self.args[0], self.args[1], fuzzing = self.args[2])
             elif self.type == 1: #mptcp
                 score = self.evaluate(trace, self.args[0], self.args[1], self.args[2], self.args[3])
+            elif self.type == 2: #dchannel
+                score = self.evaluate(trace, self.args[0])
 
             if score > best_score:
                 best_score = score

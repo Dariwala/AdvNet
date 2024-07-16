@@ -25,10 +25,14 @@ class CCProblem(ElementwiseProblem):
                 score = self.func(list(x), self.args[0], self.args[1], fuzzing = self.args[2])
             elif self.type == 1:
                 score = self.func(list(x), self.args[0], self.args[1], self.args[2], self.args[3])
+            elif self.type == 2:
+                score = self.func(list(x), self.args[0])
             out["F"] = - score
             if score > self.max_score:
                 self.max_score = score
                 self.max_score_vs_time.append([time.perf_counter() - self.start_time, self.max_score])
+            if score > 0:
+                print(list(x), score)
         else:
             out["F"] = - self.max_score
     

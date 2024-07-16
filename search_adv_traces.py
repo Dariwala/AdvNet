@@ -2,6 +2,7 @@ import argparse
 from single_cc.evaluate import evaluate
 from GA.problem import CCProblem
 from mptcp.evaluate import evaluate as evaluate_mptcp
+from dchannel.evaluate import evaluate as evaluate_dchannel
 from random_generator.random_generator import RandomGeneration
 import os, subprocess
 from GA.ga import AdvNetGA
@@ -10,8 +11,9 @@ import time
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--type', type=int, default=0, help="0 for single_cc, 1 for mptcp")
+    parser.add_argument('--type', type=int, default=0, help="0 for single_cc, 1 for mptcp, 2 for dchannel")
     parser.add_argument('--mptcp_type', type=int, default=2, help='1 for mptcp vs tcp, 2 for mptcp vs baseline, 3 for mptcp one vs two links')
+    parser.add_argument('--dchannel_exp_type', type=int, default=1, help='1 for all-hb vs pkt-state')
     parser.add_argument('--kernel', type=str, default=6, help='5/6 for kernel version 5/6.4.x')
     parser.add_argument('--alg', type=int, default=0, help="0 for random generation, 1 for GA, 2 for BO")
     parser.add_argument('--trace_length', type=int, default=3)
@@ -74,6 +76,20 @@ if __name__ == "__main__":
             problem.save()
         # score = evaluate_mptcp([2061,20,2844, 1648, 16, 2596], args.ref, args.n_eval, args.mptcp_type, args.kernel, True)
         # print(score)
+    elif args.type == 2: #dchannel
+        os.system("iperf -s &")
+        if args.alg == 0: #Random
+            randomGenerator = RandomGeneration(args.trace_length, args.l_bounds, args.u_bounds, args.seed, evaluate_dchannel, args.type, args.dchannel_exp_type)
+            trace, score = randomGenerator.run(args.total_time)
+            print(trace, score)
+        elif args.alg == 1: #GA
+            start_time = time.perf_counter()
+            problem = CCProblem(args.trace_length, args.l_bounds, args.u_bounds, evaluate_dchannel, args.seed, start_time, args.total_time, args.type, args.dchannel_exp_type)
+            ga = AdvNetGA(problem, args.pop_size, args.seed, args.n_iter)
+            result = ga.run()
+            print(-result.F[0], result.X)
+        score = evaluate_dchannel([45 ,158,   5,   5,   8,   4,  15,  19,   8,   6 ,  6], args.dchannel_exp_type, True)
+        print(score)
     
     os.system("rm traces/*")
     os.system("pkill -9 iperf")
