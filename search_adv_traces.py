@@ -87,9 +87,10 @@ if __name__ == "__main__":
             problem = CCProblem(args.trace_length, args.l_bounds, args.u_bounds, evaluate_dchannel, args.seed, start_time, args.total_time, args.type, args.dchannel_exp_type)
             ga = AdvNetGA(problem, args.pop_size, args.seed, args.n_iter)
             result = ga.run()
-            print(-result.F[0], result.X)
-        score = evaluate_dchannel([45 ,158,   5,   5,   8,   4,  15,  19,   8,   6 ,  6], args.dchannel_exp_type, True)
-        print(score)
+            with open("dchannel_results", "a") as f:
+                print(-result.F[0], result.X, time.perf_counter() - start_time, file = f)
+        # score = evaluate_dchannel([186, 180, 7, 7, 21, 3, 17, 19, 1, 3, 49], args.dchannel_exp_type, True)
+        # print(score)
     
     os.system("rm traces/*")
     os.system("pkill -9 iperf")

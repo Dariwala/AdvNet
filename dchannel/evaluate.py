@@ -3,6 +3,7 @@ from utils.generate_delay_trace import create_trace as create_delay_trace
 from dchannel.split_trace import split
 import subprocess
 import os
+import copy
 from config import parent_folder
 from dchannel.convert import convert
 from dchannel.split_trace import split
@@ -10,7 +11,10 @@ from dchannel.split_trace import split
 def create_commands(bw_file_1, bw_file_2, lt_file, ll_latency, data_size, heuristic, queue_length):
     # os.system("iperf -s &")
     # os.system("sleep 0.5")
-    command1 = "mm-adv-delay-link-rrc 12 "+heuristic+" "+parent_folder+"AdvNet/traces/"+lt_file+" "+str(ll_latency)+" "+parent_folder+"packet-logs"+" "+parent_folder+"AdvNet/traces/"+bw_file_1+" "+parent_folder+"AdvNet/traces/"+bw_file_1+" "+parent_folder+"AdvNet/traces/"+bw_file_2+" "+parent_folder+"AdvNet/traces/"+bw_file_2+" --uplink-queue=droptail --uplink-queue-args=packets="+str(queue_length)
+    if heuristic != "pkt-state-rewards":
+        command1 = "mm-adv-delay-link-rrc 12 "+heuristic+" "+parent_folder+"AdvNet/traces/"+lt_file+" "+str(ll_latency)+" "+parent_folder+"packet-logs"+" "+parent_folder+"AdvNet/traces/"+bw_file_1+" "+parent_folder+"AdvNet/traces/"+bw_file_1+" "+parent_folder+"AdvNet/traces/"+bw_file_2+" "+parent_folder+"AdvNet/traces/"+bw_file_2+" --uplink-queue=droptail --uplink-queue-args=packets="+str(queue_length)
+    else:
+        command1 = "mm-adv-delay-link-rrc 15 "+heuristic+" --enable-buffer-uplink --enable-buffer-downlink --constant-x=0.75 "+parent_folder+"AdvNet/traces/"+lt_file+" "+str(ll_latency)+" "+parent_folder+"packet-logs"+" "+parent_folder+"AdvNet/traces/"+bw_file_1+" "+parent_folder+"AdvNet/traces/"+bw_file_1+" "+parent_folder+"AdvNet/traces/"+bw_file_2+" "+parent_folder+"AdvNet/traces/"+bw_file_2+" --uplink-queue=droptail --uplink-queue-args=packets="+str(queue_length)
     command2 = "sleep 0.9"
     command3 = "/usr/bin/time -f \"%e\" iperf -c 100.64.0.1 -n "+str(data_size)+"K"
     command4 = "exit"
@@ -30,6 +34,9 @@ def measure_time(bw_file_1, bw_file_2, lt_file, ll_latency, data_size, queue_len
     return float(errors)
 
 def evaluate(trace, exp_type, log = False):
+    if len(trace) == 7: #handling single timestep
+        trace = copy.deepcopy(trace)
+        trace = [trace[0], trace[0], trace[1], trace[1], trace[2], trace[2], trace[3], trace[3]] + trace[4:]
     trace = convert(trace)
     bandwidths_1, bandwidths_2, latencies, durations, ll_latency, queue_length, data = split(trace)
 
