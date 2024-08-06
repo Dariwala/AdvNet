@@ -2,6 +2,7 @@ import pexpect
 import multiprocessing
 import concurrent.futures
 import time
+import os
 # from config import parent_folder
 parent_folder = "/home/shehab/Desktop/"
 
@@ -15,7 +16,7 @@ def create_server(is_mp, stop_event):
 
     try:
         # Spawn a child process to run the commands
-        child = pexpect.spawn("/bin/bash", timeout=60)
+        child = pexpect.spawn("/bin/bash", timeout=6000)
 
         # Send the commands to the shell
         child.sendline(commands)
@@ -25,7 +26,9 @@ def create_server(is_mp, stop_event):
 
         # Send the PEM passphrase to the process
         child.sendline(pem_passphrase)
+        # print("Server started")
         while not stop_event.is_set():
+            # os.system("sleep 0.1")
             # Check if the child process has terminated
             if not child.isalive():
                 break
@@ -34,6 +37,7 @@ def create_server(is_mp, stop_event):
         # If stop_event is set, terminate the child process
         if stop_event.is_set() and child.isalive():
             child.terminate()
+            # print("Server ended")
 
     except pexpect.TIMEOUT:
         print("Timeout reached. Process took too long.")
