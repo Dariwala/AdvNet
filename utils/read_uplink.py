@@ -1,4 +1,4 @@
-def read_uplink(file):
+def read_uplink(file, data = -1):
     with open(file) as f:
         output = f.read()
         # throughput = output.split("\n")[-2].split()[-4]
@@ -17,4 +17,6 @@ def read_uplink(file):
             time_stamp = int(line[0])
             if line[1] == '-':
                 tot_bytes += int(line[2])
+                if data != -1 and tot_bytes >= data:
+                    return -1, time_stamp - start_time
     return tot_bytes, time_stamp - start_time

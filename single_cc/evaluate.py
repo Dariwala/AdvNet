@@ -1,5 +1,6 @@
 from single_cc.split_trace import split_trace
 from single_cc.preprocess_trace_fuzzing import preprocess_trace_fuzzing
+from single_cc.convert import convert
 from utils.generate_bandwidth_trace import create_trace as create_bandwidth_trace, create_trace_fuzzing as create_bandwidth_trace_fuzzing
 from utils.generate_delay_trace import create_trace as create_delay_trace, create_trace_fuzzing as create_delay_trace_fuzzing
 import subprocess
@@ -48,10 +49,10 @@ def run_iperf_client(server_ip, duration, alg, bw_file, lt_file, queue_length = 
     tot_bytes, duration = read_uplink()
     return tot_bytes * 8 * 1000 / (duration * 1024 * 1024), duration
 
-def get_throughput(bw_file, lt_file, tot_duration, alg):
+def get_throughput(bw_file, lt_file, tot_duration, alg, queue_length):
     # Run iperf client
     server_ip = '100.64.0.1'  # Change to the IP address of your server
-    result, duration = run_iperf_client(server_ip, tot_duration, alg, bw_file, lt_file)
+    result, duration = run_iperf_client(server_ip, tot_duration, alg, bw_file, lt_file, queue_length)
     return result, duration
 
 def get_maximum_throughput(bw_file, actual_duration):
@@ -79,7 +80,13 @@ def get_maximum_throughput(bw_file, actual_duration):
 
 def evaluate(trace, ref, n_evals, log = False, fuzzing = False):
     if not fuzzing:
-        bandwidths, latencies, durations = split_trace(trace)
+        # trace = convert(trace)
+        bandwidths, latencies, durations, queue_length = convert(trace)
+        l = []
+        if log:
+            for i, _ in enumerate(latencies):
+                l.append([latencies[i], durations[i]])
+            print(l)
         tot_duration = sum(durations)
         
         bw_file = create_bandwidth_trace(bandwidths, durations)
@@ -93,7 +100,7 @@ def evaluate(trace, ref, n_evals, log = False, fuzzing = False):
     logs = []
 
     for i in range(n_evals):
-        throughput_ref, actual_duration = get_throughput(bw_file, lt_file, tot_duration, ref)
+        throughput_ref, actual_duration = get_throughput(bw_file, lt_file, tot_duration, ref, queue_length)
         throughput_baseline = get_maximum_throughput(bw_file, actual_duration)
         logs.append((throughput_ref, throughput_baseline))
         results.append((throughput_baseline - throughput_ref) / throughput_baseline)
