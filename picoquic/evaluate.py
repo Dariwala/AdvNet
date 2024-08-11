@@ -8,6 +8,7 @@ from picoquic.convert import convert
 from picoquic.split_trace import split
 from utils.kill_process import find_and_kill_process
 from utils.create_toy_server import create_server
+from utils.read_uplink import read_uplink
 import multiprocessing, threading
 
 def create_commands(bw_file_1, bw_file_2, lt_file_1, lt_file_2, data_size, command_type, queue_length, ref):
@@ -73,21 +74,32 @@ def evaluate(trace, exp_type, ref, tar, n_evals, log = False):
             print(bandwidths_1, bandwidths_2, latencies_1, latencies_2, durations, data, queue_length, ref)
             print(exec_time_mpquic, exec_time_quic)
         return (exec_time_mpquic - exec_time_quic) / exec_time_mpquic
-    elif exp_type == 2:
+    elif exp_type == 2 or exp_type == 3:
         bandwidths, latencies, durations, data, queue_length = split(trace, 2)
 
         bw_file = create_bandwidth_trace(bandwidths, durations)
         lt_file = create_delay_trace(latencies, durations)
 
         values = []
-        for _ in range(n_evals):
-            values.append(measure_time(bw_file, None, lt_file, None, data, queue_length, 1, tar))
-        exec_time_tar = sum(values) / n_evals
-        values = []
+        exec_times = []
         for _ in range(n_evals):
             values.append(measure_time(bw_file, None, lt_file, None, data, queue_length, 1, ref))
+            if exp_type == 3:
+                _, tot_duration = read_uplink(parent_folder + "packet-logs/uplink", data)
+                exec_times.append(tot_duration)
         exec_time_ref = sum(values) / n_evals
-        if log:
-            print(bandwidths_1, bandwidths_2, latencies_1, latencies_2, durations, data, queue_length, ref)
-            print(exec_time_mpquic, exec_time_quic)
-        return (exec_time_tar - exec_time_ref) / exec_time_tar
+
+        if exp_type == 2:
+            values = []
+            for _ in range(n_evals):
+                values.append(measure_time(bw_file, None, lt_file, None, data, queue_length, 1, tar))
+            exec_time_tar = sum(values) / n_evals
+
+            if log:
+                print(exec_time_ref, exec_time_tar)
+
+            return (exec_time_tar - exec_time_ref) / exec_time_tar
+
+        elif exp_type == 3:
+            mean_min_possible_exec_time = sum(exec_times) / n_evals
+            return (exec_time_ref - mean_min_possible_exec_time / 1000) / exec_time_ref
