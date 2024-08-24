@@ -15,8 +15,13 @@ def read_uplink(file, data = -1):
         for line in lines:
             line = line.split()
             time_stamp = int(line[0])
-            if line[1] == '-':
-                tot_bytes += int(line[2])
-                if data != -1 and tot_bytes >= data:
-                    return -1, time_stamp - start_time
+            if data != -1:
+                if line[1] == '#':
+                    tot_bytes += int(line[2])
+                    if tot_bytes >= data:
+                        return -1, time_stamp - start_time
+            else:
+                if line[1] == '-':
+                    tot_bytes += int(line[2])
+            
     return tot_bytes, time_stamp - start_time

@@ -15,8 +15,8 @@ def convert(trace, exp_type):
     elif exp_type == 2 or exp_type == 3:
         bandwidths, latencies, durations, data, queue_length = split(trace, 2)
         scale_up(bandwidths, 500)#l = 1,u=400
-        scale_up(latencies, 5)#l=1,u=40
-        scale_up(durations, 5)#l=1,u=40
+        scale_up(latencies, 1)#l=1,u=40
+        scale_up(durations, 50)#l=1,u=40
         data *= 500 #l=1,u=10000
         queue_length *= 100 #l=1,u=50
         return bandwidths + latencies + durations + [data, queue_length]

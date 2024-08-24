@@ -102,4 +102,4 @@ def evaluate(trace, exp_type, ref, tar, n_evals, log = False):
 
         elif exp_type == 3:
             mean_min_possible_exec_time = sum(exec_times) / n_evals
-            return (exec_time_ref - mean_min_possible_exec_time / 1000) / exec_time_ref
+            return (exec_time_ref - mean_min_possible_exec_time) / exec_time_ref
