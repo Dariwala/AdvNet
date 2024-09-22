@@ -95,6 +95,7 @@ def evaluate(trace, ref, n_evals, log = False, fuzzing = False):
         trace, tot_duration = preprocess_trace_fuzzing(trace)
         bw_file = create_bandwidth_trace_fuzzing(trace)
         lt_file = create_delay_trace_fuzzing()
+        queue_length = 5000
     
     results = []
     logs = []
@@ -106,6 +107,7 @@ def evaluate(trace, ref, n_evals, log = False, fuzzing = False):
         results.append((throughput_baseline - throughput_ref) / throughput_baseline)
     
     if log:
+        print(np.median(np.array(results)))
         return logs
 
     return np.median(np.array(results))#sum(results) / n_evals
