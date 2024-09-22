@@ -43,15 +43,22 @@ if __name__ == "__main__":
             randomGenerator = RandomGeneration(args.trace_length, args.l_bounds, args.u_bounds, args.seed, evaluate, args.type, args.ref, args.n_eval, args.fuzzing)
             trace, score = randomGenerator.run(args.total_time)
             print(trace, score)
+            randomGenerator.save()
 
         elif args.alg == 1: #GA
             start_time = time.perf_counter()
             problem = CCProblem(args.trace_length, args.l_bounds, args.u_bounds, evaluate, args.seed, start_time, args.total_time, args.type, args.ref, args.n_eval, args.fuzzing)
             ga = AdvNetGA(problem, args.pop_size, args.seed, args.n_iter)
             result = ga.run()
-            print(result.F, result.X, time.perf_counter() - start_time)
+            if not args.fuzzing:
+                with open("UC1_results", "a") as f:
+                    print(args.ref, (args.trace_length - 1) // 3 ,"timesteps", -result.F[0], result.X, time.perf_counter() - start_time, file = f)
+            else:
+                with open("fuzz_results", "a") as f:
+                    print(args.ref, args.trace_length ,"timesteps", -result.F[0], result.X, time.perf_counter() - start_time, file = f)
             problem.save()
-
+        # score = evaluate([10, 7, 21, 17], args.ref, args.n_eval, True)
+        # print(score)
         # elif args.alg == 2: #BO
         #     bo = AdvNetBO(args.trace_length, args.l_bounds, args.u_bounds, evaluate, args.n_eval, args.ref, args.seed)
         #     res = bo.run(args.n_calls)         
@@ -64,20 +71,21 @@ if __name__ == "__main__":
         elif args.kernel == "5":
             os.system("iperf -s &")
         if args.alg == 0: #Random
-            randomGenerator = RandomGeneration(args.trace_length, args.l_bounds, args.u_bounds, args.seed, evaluate_mptcp, args.type, args.ref, args.n_eval, args.mptcp_type, args.kernel)
+            randomGenerator = RandomGeneration(args.trace_length, args.l_bounds, args.u_bounds, args.seed, evaluate_mptcp, args.type, args.ref, args.n_eval, args.mptcp_type, args.kernel, args.tar)
             trace, score = randomGenerator.run(args.total_time)
             print(trace, score)
             randomGenerator.save()
         elif args.alg == 1: #GA
             start_time = time.perf_counter()
-            problem = CCProblem(args.trace_length, args.l_bounds, args.u_bounds, evaluate_mptcp, args.seed, start_time, args.total_time, args.type, args.ref, args.n_eval, args.mptcp_type, args.kernel)
+            problem = CCProblem(args.trace_length, args.l_bounds, args.u_bounds, evaluate_mptcp, args.seed, start_time, args.total_time, args.type, args.ref, args.n_eval, args.mptcp_type, args.kernel, args.tar)
             ga = AdvNetGA(problem, args.pop_size, args.seed, args.n_iter)
             result = ga.run()
             with open("mptcp_results", "a") as f:
                 print(args.ref, args.seed, -result.F[0], result.X, time.perf_counter() - start_time, file = f)
             problem.save()
-        # score = evaluate_mptcp([2061,20,2844, 1648, 16, 2596], args.ref, args.n_eval, args.mptcp_type, args.kernel, True)
-        # print(score)
+        score = evaluate_mptcp([2 ,  5 , 68 , 17 , 30 ,363], args.ref, args.n_eval, args.mptcp_type, args.kernel, args.tar, True)
+        # score = evaluate_mptcp([76, 106,  20,   5,  53,   8,   3,  16,  45,  40, 426], args.ref, args.n_eval, args.mptcp_type, args.kernel, args.tar, True)
+        print(score)
     elif args.type == 2: #dchannel
         os.system("iperf -s &")
         if args.alg == 0: #Random
@@ -91,19 +99,24 @@ if __name__ == "__main__":
             result = ga.run()
             with open("dchannel_results", "a") as f:
                 print(-result.F[0], result.X, time.perf_counter() - start_time, file = f)
+        score = evaluate_dchannel([171 ,  4 ,  5 ,  1 , 10  , 3  , 5], 1, 3, True)
+        print(score)
     elif args.type == 3: #picoquic
         if args.alg == 0: #Random
-            pass
+            randomGenerator = RandomGeneration(args.trace_length, args.l_bounds, args.u_bounds, args.seed, evaluate_picoquic, args.type, args.picoquic_exp_type, args.ref, args.tar, args.n_eval)
+            trace, score = randomGenerator.run(args.total_time)
+            print(trace, score)
+            randomGenerator.save()
         elif args.alg == 1: #GA
             start_time = time.perf_counter()
             problem = CCProblem(args.trace_length, args.l_bounds, args.u_bounds, evaluate_picoquic, args.seed, start_time, args.total_time, args.type, args.picoquic_exp_type, args.ref, args.tar, args.n_eval)
             ga = AdvNetGA(problem, args.pop_size, args.seed, args.n_iter)
             result = ga.run()
             with open("picoquic_results", "a") as f:
-                print("BBR1 vs BBR", (args.trace_length - 2) // 3, "timesteps", args.ref, -result.F[0], result.X, time.perf_counter() - start_time, file = f)
-        # score = evaluate_picoquic([186, 10, 7, 7, 21, 3, 17], 1, args.ref, args.tar, args.n_eval)
-        # print(score)
+                print(args.ref, (args.trace_length - 2) // 3, "timesteps", args.tar, -result.F[0], result.X, time.perf_counter() - start_time, file = f)
+        score = evaluate_picoquic([345,  284,  208,  173,   14,   22, 3306,   28], 2, args.ref, args.tar, args.n_eval, True)
+        print(score)
     
-    os.system("rm traces/*")
+    # os.system("rm traces/*")
     os.system("pkill -9 iperf")
     
