@@ -14,6 +14,8 @@ def create_trace(bandwidths, durations):
                 pdos.append(round(base_time + time_unit))
                 base_time += time_unit
             base_time = end_time
+            if len(pdos) == 0:
+                pdos.append(end_time)
 
             for pdo in pdos:
                 file.write(str(pdo)+"\n")
