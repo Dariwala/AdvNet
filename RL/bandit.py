@@ -1,74 +1,51 @@
 import numpy as np
-import gym
-from collections import defaultdict
+import gymnasium as gym
+from gymnasium.spaces import Discrete, Box
+from ray import tune
+from mptcp.evaluate import evaluate
 
-class ExtendedCongestionControlEnv(gym.Env):
-    def __init__(self, l_bound, bound_range):
-        super(ExtendedCongestionControlEnv, self).__init__()
-        # MultiDiscrete action space for multiple parameters
-        self.action_space = gym.spaces.MultiDiscrete(
-            bound_range
-        )
 
-        # Observation space (if needed)
-        self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(1,), dtype=np.float32)
-        self.l_bound = l_bound
+class BanditEnv(gym.Env):
+    def __init__(self, config):
+        super(BanditEnv, self).__init__()
+        self.l_bound = config["l_bound"]
+        self.bound_range = config["bound_range"]
+        self.ref = config["ref"]
+        self.tar = config["tar"]
+        self.mptcp_type = config["mptcp_type"]
+        self.n_evals = config["n_evals"]
+        self.kernel = config["kernel"]
+        self.max_reward = -np.inf
+        self.comp = 0
 
-    def reset(self):
-        # Reset environment state (optional)
-        return np.array([0])  # Replace with actual state if needed
+        # Action space: Choose one action (arm) out of all possible parameters
+        self.action_space = Discrete(len(self.bound_range))
+
+        # Observation space: Optional contextual features (can also be `None` or static)
+        self.observation_space = Box(low=-np.inf, high=np.inf, shape=(1,), dtype=np.float32)
+
+        self.context = np.array([0])  # Example context (replace as needed)
+
+    def reset(self, *, seed=None, options=None):
+        # Reset environment and provide the initial context
+        return self.context, {}
 
     def step(self, action):
-        trace = [self.l_bound[i] + action[i] for i in range(action.shape[0])]
-        return np.array([0]), 1, True, {}
+        self.comp += 1
+        # Map action to parameter tuning
+        trace = [self.l_bound[i] + action for i in range(len(self.l_bound))]
+        reward = self.evaluate(trace)  # Reward based on evaluation
+        done = True  # Single-step task in bandit problems
+        truncated = False
+        info = {"trace": trace}  # Optional extra information
 
-    def compute_reward(self, bandwidth, latency, duration, queue_length):
-        # Replace with your logic for congestion control and reward calculation
-        reward = np.exp(-(latency / 100)) * (bandwidth / 100) * duration / (queue_length + 1)
+        return self.context, reward, done, truncated, info
+
+    def evaluate(self, trace):
+        # External evaluation logic for the bandit arm
+        reward = evaluate(trace, self.ref, self.n_evals, self.mptcp_type, self.kernel, self.tar)
+        if reward > self.max_reward:
+            self.max_reward = reward
+            with open("results/score_across_comparisons_bandit_"+self.ref+"_vs_"+self.tar+"_2_timesteps_with_delay", "a") as f:
+                print(self.comp, self.max_reward, trace, file = f)
         return reward
-
-class MonteCarloBanditAgent:
-    def __init__(self, env, num_samples):
-        self.env = env
-        self.num_samples = num_samples
-        self.q_est = defaultdict(float)
-        self.action_counts = defaultdict(int)
-
-    def select_action(self):
-        sampled_actions = [tuple(np.random.randint(dim) for dim in self.env.action_space.nvec) for _ in range(self.num_samples)]
-        return max(sampled_actions, key=lambda a: self.q_est.get(a, 0.0))
-
-    def update(self, action, reward):
-        action = tuple(action)
-        self.action_counts[action] += 1
-        alpha = 1 / self.action_counts[action]
-        self.q_est[action] += alpha * (reward - self.q_est[action])
-
-def bandit_learning(env, agent, steps):
-    rewards = []
-    for step in range(steps):
-        # Select and decode action
-        action = agent.select_action()
-
-        # Run congestion control and get reward
-        _, reward, _, _ = env.step(np.array(action))
-
-        # Update bandit agent
-        agent.update(action, reward)
-
-        rewards.append(reward)
-
-        if step % 100 == 0:
-            print(f"Step {step}: Reward = {reward:.2f}, Action = {action}")
-
-    return rewards
-
-env = ExtendedCongestionControlEnv([100, 100, 100], [100, 100, 100])
-agent = MonteCarloBanditAgent(env, num_samples=10)
-
-# Run bandit learning
-steps = 1000
-rewards = bandit_learning(env, agent, steps)
-
-# Results
-print("Average reward:", np.mean(rewards))
