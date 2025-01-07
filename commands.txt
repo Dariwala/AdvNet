@@ -1,0 +1,8 @@
+#reno vs cubic
+sudo ls;python analyze_single_cc_trace.py --trace 915 516 11 40 1 1 1 1 12 43 269 0 --ref=reno --tar=cubic --mptcp --mptcp_type=6
+# train
+sudo ls;python search_adv_traces.py --l_bounds 1 1 1 1 1 1 1 1 10 10 50 0 --u_bounds 1200 1200 50 50 1 1 1 1 50 50 1000 0 --trace_length=12 --alg=1 --ref=cubic --tar=reno --seed=1 --n_iter=500 --pop_size=25 --n_eval=3 --kernel=5 --type=1 --mptcp_type=6 --total_time=3600
+#cubic vs bbr
+sudo ls;python analyze_single_cc_trace.py --trace 982 1051 37 1 1 1 1 1 28 13 810 0 --ref=cubic --tar=bbr --mptcp --mptcp_type=6
+2 single_cc flows in one link
+sudo ls;python search_adv_traces.py --l_bounds 1 1 1 1 10 10 10 --u_bounds 1200 1200 50 50 50 50 100 --trace_length=7 --alg=1 --ref=reno --tar=cubic --seed=1 --n_iter=500 --pop_size=25 --n_eval=4 --type=4

@@ -4,11 +4,33 @@ from GA.problem import CCProblem
 from mptcp.evaluate import evaluate as evaluate_mptcp
 from dchannel.evaluate import evaluate as evaluate_dchannel
 from picoquic.evaluate import evaluate as evaluate_picoquic
+from multiflow.single_cc import evaluate as evaluate_multiflow_single_cc
 from random_generator.random_generator import RandomGeneration
 import os, subprocess
 from GA.ga import AdvNetGA
-# from BO.bo import AdvNetBO
+# from RL.bandit import Env, MonteCarloBanditAgent, bandit_learning
+from RL.single_agent_rl import RLlibEnv
+# from RL.multi_agent_rl import RLlibMultiAgentEnv, FlattenedMultiAgentEnv
+# from ray.rllib.algorithms.ppo import PPOConfig
+# from ray.rllib.algorithms.a3c import A3CConfig
+# from ray.rllib.algorithms.bandit import BanditConfig
+# from ray import tune
+# from RL.bandit import BanditEnv
+# from ray.tune.registry import register_env
+# from RL.custom_environment import CustomEnvironment
+# from gymnasium.spaces import Discrete
+# from ray.rllib.env import PettingZooEnv
+# from ray.rllib.env.wrappers.multi_agent_env_compatibility import MultiAgentEnvCompatibility
 import time
+# import supersuit as ss
+from stable_baselines3 import PPO
+from stable_baselines3.common.env_util import DummyVecEnv
+# from pettingzoo.utils import parallel_to_aec
+# from pettingzoo.utils.wrappers import BaseParallelWrapper
+
+# def env_creator(config):
+#     raw_env = CustomEnvironment(config=config)
+#     return PettingZooEnv(raw_env)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -80,12 +102,134 @@ if __name__ == "__main__":
             problem = CCProblem(args.trace_length, args.l_bounds, args.u_bounds, evaluate_mptcp, args.seed, start_time, args.total_time, args.type, args.ref, args.n_eval, args.mptcp_type, args.kernel, args.tar)
             ga = AdvNetGA(problem, args.pop_size, args.seed, args.n_iter)
             result = ga.run()
-            with open("mptcp_results", "a") as f:
-                print(args.ref, args.seed, -result.F[0], result.X, time.perf_counter() - start_time, file = f)
+            # with open("UC2_SPTCP_Linux_Kernel_with_delay_coeff", "a") as f:
+            #     print(args.ref, "vs", args.tar, (args.trace_length - 1) // 5, "timesteps", -result.F[0], result.X, time.perf_counter() - start_time, file = f)
             problem.save()
-        score = evaluate_mptcp([2 ,  5 , 68 , 17 , 30 ,363], args.ref, args.n_eval, args.mptcp_type, args.kernel, args.tar, True)
+        elif args.alg == 2:
+            # Define configuration for the environment
+            config = {
+                "l_bound": args.l_bounds,
+                "bound_range": [args.u_bounds[i] - args.l_bounds[i] + 1 for i in range(args.trace_length)],
+                "ref": args.ref,
+                "tar": args.tar,
+                "mptcp_type": args.mptcp_type,
+                "n_evals": args.n_eval,
+                "kernel": args.kernel,
+            }
+
+            # Register the custom environment
+            tune.register_env("BanditEnv", lambda cfg: BanditEnv(cfg))
+
+            # Run the Bandit optimization
+            tune.run(
+                "PPO",  # You can replace "PPO" with any supported RLlib algorithm like "DQN" or "A3C"
+                config={
+                    "env": "BanditEnv",
+                    "env_config": config,
+                    "gamma": 0.99,  # Optional: Discount factor
+                },
+                stop={"training_iteration": args.n_iter},
+                local_dir="./results",
+            )
+        elif args.alg == 3:
+            # Define the configuration for the RLlib environment
+            # config = {
+            #     "l_bound": args.l_bounds,
+            #     "bound_range": [args.u_bounds[i] - args.l_bounds[i] + 1 for i in range(args.trace_length)],
+            #     "ref": args.ref,
+            #     "tar": args.tar,
+            #     "mptcp_type": args.mptcp_type,
+            #     "n_evals": args.n_eval,
+            #     "kernel": args.kernel,
+            # }
+
+            # Register the environment
+            # tune.register_env("RLlibEnv", lambda cfg: RLlibEnv(cfg))
+
+            # Configure the PPO algorithm
+            # ppo_config = (
+            #     A3CConfig()
+            #     .environment("RLlibEnv", env_config=config)
+            #     .framework("torch")
+            #     .training(
+            #         train_batch_size=25,
+            #         sgd_minibatch_size=5,  # Set to a smaller value <= train_batch_size
+            #         gamma=0.99,
+            #     ).rollouts(
+            #         num_rollout_workers=1  # Use only 1 worker for sequential execution
+            #     )
+            # )
+
+            # Train the RLlib agent
+            # tune.run(
+            #     "A3C",
+            #     config=ppo_config.to_dict(),
+            #     stop={"training_iteration": args.n_iter},  # Stop after 50 iterations
+            #     local_dir="./results",  # Save results to this directory
+            # )
+            gym_env = RLlibEnv(args.l_bounds, [args.u_bounds[i] - args.l_bounds[i] + 1 for i in range(args.trace_length)], args.n_eval, evaluate_mptcp, args.type, args.ref, args.tar, args.mptcp_type, args.kernel)
+
+            # Train using Stable-Baselines3
+            model = PPO("MlpPolicy", gym_env, verbose=1, n_steps = 2, batch_size = 2, learning_rate = 1e-4)
+
+            # Train the model
+            model.learn(total_timesteps=args.n_iter)
+
+            # Save the model
+            model.save(args.ref+"_"+args.tar+"_PPO")
+
+        # score = evaluate_mptcp([2 ,  5 , 68 , 17 , 30 ,363], args.ref, args.n_eval, args.mptcp_type, args.kernel, args.tar, True)
         # score = evaluate_mptcp([76, 106,  20,   5,  53,   8,   3,  16,  45,  40, 426], args.ref, args.n_eval, args.mptcp_type, args.kernel, args.tar, True)
-        print(score)
+        # print(score)
+        # elif args.alg == 4:
+            # Define the multi-agent environment config
+            # env_config = {
+            #     "l_bound": args.l_bounds,
+            #     "bound_range": [args.u_bounds[i] - args.l_bounds[i] + 1 for i in range(args.trace_length)],
+            #     "ref": args.ref,
+            #     "tar": args.tar,
+            #     "mptcp_type": args.mptcp_type,
+            #     "n_evals": args.n_eval,
+            #     "kernel": args.kernel,
+            #     "num_agents": 2,  # Define the number of agents
+            # }
+
+            # Register the environment
+            # register_env("custom_pettingzoo_env", env_creator)
+
+            # Create your PettingZoo environment instance
+            # raw_env = CustomEnvironment(config=env_config)
+
+            # Wrap the environment with PettingZooEnv
+            # rllib_env = PettingZooEnv(raw_env)
+
+            # Set up Ray RLLib configuration for multi-agent PPO
+            # config = PPOConfig().environment(
+            #     env="custom_pettingzoo_env", env_config=env_config
+            # ).multi_agent(
+            #     policies={
+            #         "policy_0": (None, Discrete(1), env_config["bound_range"], {}),
+            #         "policy_1": (None, Discrete(1), env_config["bound_range"], {}),
+            #     },
+            #     policy_mapping_fn=lambda agent_id: "policy_0" if agent_id == "agent_0" else "policy_1",
+            # ).rollouts(num_rollout_workers=1)
+
+            # Running the experiment with Ray Tune
+            # tune.run("PPO", config=config.to_dict(), stop={"training_iteration": args.n_iter})  # Adjust the number of iterations
+            # Initialize the PettingZoo parallel environment
+            # multi_agent_env = RLlibMultiAgentEnv(env_config)
+
+            # Wrap it with the FlattenedMultiAgentEnv wrapper
+            # gym_env = FlattenedMultiAgentEnv(multi_agent_env)
+
+            # Train using Stable-Baselines3
+            # model = PPO("MlpPolicy", gym_env, verbose=1)
+
+            # Train the model
+            # model.learn(total_timesteps=1)
+
+            # Save the model
+            # model.save("ppo_custom_env")
     elif args.type == 2: #dchannel
         os.system("iperf -s &")
         if args.alg == 0: #Random
@@ -116,7 +260,26 @@ if __name__ == "__main__":
                 print(args.ref, (args.trace_length - 2) // 3, "timesteps", args.tar, -result.F[0], result.X, time.perf_counter() - start_time, file = f)
         score = evaluate_picoquic([345,  284,  208,  173,   14,   22, 3306,   28], 2, args.ref, args.tar, args.n_eval, True)
         print(score)
-    
+    elif args.type == 4: #multi-flow single cc
+        if args.alg == 1: #GA
+            start_time = time.perf_counter()
+            problem = CCProblem(args.trace_length, args.l_bounds, args.u_bounds, evaluate_multiflow_single_cc, args.seed, start_time, args.total_time, args.type, args.ref, args.n_eval, args.tar)
+            ga = AdvNetGA(problem, args.pop_size, args.seed, args.n_iter)
+            result = ga.run()
+            # with open("UC2_SPTCP_Linux_Kernel_with_delay_coeff", "a") as f:
+            #     print(args.ref, "vs", args.tar, (args.trace_length - 1) // 5, "timesteps", -result.F[0], result.X, time.perf_counter() - start_time, file = f)
+            # problem.save()
+        elif args.alg == 3: #RL
+            gym_env = RLlibEnv(args.l_bounds, [args.u_bounds[i] - args.l_bounds[i] + 1 for i in range(args.trace_length)], args.n_eval, evaluate_multiflow_single_cc, args.type, args.ref, args.tar)
+
+            # Train using Stable-Baselines3
+            model = PPO("MlpPolicy", gym_env, verbose=1, n_steps = 2, batch_size = 2, learning_rate = 1e-4)
+
+            # Train the model
+            model.learn(total_timesteps=args.n_iter)
+
+            # Save the model
+            model.save(args.ref+"_"+args.tar+"_PPO")
     # os.system("rm traces/*")
     os.system("pkill -9 iperf")
     

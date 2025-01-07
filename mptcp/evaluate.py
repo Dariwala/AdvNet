@@ -7,7 +7,7 @@ import subprocess
 from config import parent_folder
 import numpy as np
 import os
-from single_cc.evaluate import run_iperf_client as run_iperf_client_single_cc
+from single_cc.evaluate import run_iperf_client as run_iperf_client_single_cc, read_packet_log_output_uplink
 from mptcp.convert import convert
 
 def create_commands(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, command_type, ref, kernel, queue_length):
@@ -39,6 +39,7 @@ def create_commands(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, co
             command4 = "/usr/bin/time -f \"%e\" iperf -c 100.64.0.1 -n " + str(tot_duration) + "K" #tot_duration is tot_size here
         command5 = "pkill -9 iperf"
         command6 = "iperf -s &"
+        # command7 = "sudo tcpdump -i lo tcp and port 5001 -w "+ref+".pcap &"
         os.system(command5)
         os.system(command6)
         commands = f"""
@@ -91,8 +92,8 @@ def get_maximum_throughput(bw_file, actual_duration):
 
 def evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, log = False, simplify = False, index = -1):
     if not simplify:
-        trace = convert(trace)
-        bandwidths_1, latencies_1, durations, bandwidths_2, latencies_2, queue_length = split_trace(trace)
+        trace = convert(trace, mptcp_type)
+        bandwidths_1, latencies_1, durations, bandwidths_2, latencies_2, queue_length = split_trace(trace, mptcp_type)
         durations_1 = durations
         durations_2 = durations
         if mptcp_type == 4:
@@ -104,9 +105,9 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, log = False, simplify
 
     bw_file_1 = create_bandwidth_trace(bandwidths_1, durations_1)
     lt_file_1 = create_delay_trace(latencies_1, durations_1)
-
-    bw_file_2 = create_bandwidth_trace(bandwidths_2, durations_2)
-    lt_file_2 = create_delay_trace(latencies_2, durations_2)
+    if mptcp_type != 6:
+        bw_file_2 = create_bandwidth_trace(bandwidths_2, durations_2)
+        lt_file_2 = create_delay_trace(latencies_2, durations_2)
 
     results = []
     logs = []
@@ -157,17 +158,22 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, log = False, simplify
     elif mptcp_type == 6:
         throughput_sptcp_ref_max = -1.0
         throughput_sptcp_tar_max = -1.0
+        # delay_sptcp_ref_min = 100000
+        # delay_sptcp_tar_min = 100000
 
         for _ in range(n_evals):
             throughput_sptcp_tar, duration = run_iperf_client_single_cc("100.64.0.1", sum(durations_1), tar, bw_file_1, lt_file_1, queue_length)
             if throughput_sptcp_tar > throughput_sptcp_tar_max:
                 throughput_sptcp_tar_max = throughput_sptcp_tar
-        os.system("sleep 1;cp "+parent_folder+"packet-logs/uplink "+parent_folder+"/packet-logs/temp_1")
+                avg_delay_sptcp_tar = read_packet_log_output_uplink()
+                os.system("sleep 1;cp "+parent_folder+"packet-logs/uplink "+parent_folder+"/packet-logs/tar_uplink")
+                os.system("cp "+parent_folder+"packet-logs/packet-log-output-uplink "+parent_folder+"/packet-logs/tar_packet-log-output-uplink")
         for _ in range(n_evals):
             throughput_sptcp_ref, duration = run_iperf_client_single_cc("100.64.0.1", sum(durations_1), ref, bw_file_1, lt_file_1, queue_length)
             if throughput_sptcp_ref > throughput_sptcp_ref_max:
                 throughput_sptcp_ref_max = throughput_sptcp_ref
-        logs.append([throughput_sptcp_ref_max, throughput_sptcp_tar_max])
+                avg_delay_sptcp_ref = read_packet_log_output_uplink()
+        logs.append([throughput_sptcp_ref_max, throughput_sptcp_tar_max, avg_delay_sptcp_ref, avg_delay_sptcp_tar])
     if log:
         return logs
     elif mptcp_type == 1:
@@ -175,7 +181,9 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, log = False, simplify
     elif mptcp_type == 5:
         return (throughput_mptcp_ref_max - throughput_mptcp_tar_max) / throughput_mptcp_ref_max
     elif mptcp_type == 6:
-        return (throughput_sptcp_ref_max - throughput_sptcp_tar_max) / throughput_sptcp_ref_max
+        # return (throughput_sptcp_ref_max - throughput_sptcp_tar_max) / throughput_sptcp_ref_max
+        score = (throughput_sptcp_ref_max - throughput_sptcp_tar_max) / (throughput_sptcp_ref_max * 2) + (avg_delay_sptcp_tar-avg_delay_sptcp_ref) / (avg_delay_sptcp_tar * 2)
+        return score
     else:
         # print("HHH", throughput_mptcp_single_link_max, throughput_mptcp_max)
         return np.median(results)

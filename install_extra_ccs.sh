@@ -13,3 +13,5 @@ sudo modprobe -a tcp_vegas
 sudo modprobe -a tcp_veno
 sudo modprobe -a tcp_westwood
 sudo modprobe -a tcp_yeah
+sudo sysctl -w net.ipv4.ip_forward=1
+sudo sysctl -w net.ipv4.ip_forward=1
