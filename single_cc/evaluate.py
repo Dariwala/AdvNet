@@ -31,6 +31,19 @@ def read_uplink():
                 tot_bytes += int(line[2])
     return tot_bytes, duration
 
+def read_packet_log_output_uplink():
+    with open(parent_folder + "packet-logs/packet-log-output-uplink") as f:
+        output = f.read()
+        lines = output.split('\n')[:-1]
+        tot_delay = 0.0
+        count = 0
+        for line in lines:
+            if line != '':
+                line = line.split('\t')
+                tot_delay += float(line[0])
+                count += 1
+        return tot_delay / count
+
 def run_iperf_client(server_ip, duration, alg, bw_file, lt_file, queue_length = 860):
     # Run iperf client and capture output
     # while True:
@@ -45,7 +58,17 @@ def run_iperf_client(server_ip, duration, alg, bw_file, lt_file, queue_length = 
     os.system("pkill -9 iperf")
     os.system("iperf -s &")
     os.system("sleep 0.9")
-    os.system("mm-delay-link-rrc 10 "+ parent_folder +"AdvNet/traces/"+lt_file+" "+ parent_folder +"AdvNet/traces/"+bw_file+" "+ parent_folder +"AdvNet/traces/"+bw_file+" "+ parent_folder +"packet-logs/ --uplink-log="+ parent_folder +"packet-logs/uplink --downlink-log="+ parent_folder +"packet-logs/downlink --uplink-queue=droptail --uplink-queue-args=packets="+ str(queue_length) +" sudo iperf -c " + server_ip + " -Z " + alg + " -t " + str(duration / 1000))
+    # os.system("mm-delay-link-rrc 10 "+ parent_folder +"AdvNet/traces/"+lt_file+" "+ parent_folder +"AdvNet/traces/"+bw_file+" "+ parent_folder +"AdvNet/traces/"+bw_file+" "+ parent_folder +"packet-logs/ --uplink-log="+ parent_folder +"packet-logs/uplink --downlink-log="+ parent_folder +"packet-logs/downlink --uplink-queue=droptail --uplink-queue-args=packets="+ str(queue_length) +" sudo iperf -c " + server_ip + " -Z " + alg + " -t " + str(duration / 1000))
+    shell = subprocess.Popen("/bin/bash", stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    command1 = "mm-delay-link-rrc 10 "+ parent_folder +"AdvNet/traces/"+lt_file+" "+ parent_folder +"AdvNet/traces/"+bw_file+" "+ parent_folder +"AdvNet/traces/"+bw_file+" "+ parent_folder +"packet-logs/ --uplink-log="+ parent_folder +"packet-logs/uplink --downlink-log="+ parent_folder +"packet-logs/downlink --uplink-queue=droptail --uplink-queue-args=packets="+ str(queue_length)
+    command2 = "sudo iperf -c " + server_ip + " -Z " + alg + " -t " + str(duration / 1000)
+    command3 = "sudo tcpdump -i ingress host 100.64.0.1 and port 5001 -w "+alg+".pcap &"
+    commands = f"""
+            {command1}
+            {command3}
+            {command2}
+        """
+    output, errors = shell.communicate(commands)
     tot_bytes, duration = read_uplink()
     return tot_bytes * 8 * 1000 / (duration * 1024 * 1024), duration
 
