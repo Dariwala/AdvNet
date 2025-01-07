@@ -25,3 +25,29 @@ def read_uplink(file, data = -1):
                     tot_bytes += int(line[2])
             
     return tot_bytes, time_stamp - start_time
+
+def read_uplink_mp(file):
+    with open(file) as f:
+        output = f.read()
+        # throughput = output.split("\n")[-2].split()[-4]
+        # unit = output.split("\n")[-2].split()[-3]
+        # # print("HOHOH", output)
+        # if unit == "MBytes":
+        #     return float(throughput)
+        # elif unit == "KBytes":
+        #     return float(throughput) / 1024
+        tot_bytes = 0
+        time_stamp = 0
+        lines = output.split('\n')[4:-1]
+        check = False
+        start_time = int(lines[0].split()[0])
+        for line in lines:
+            line = line.split()
+            time_stamp = int(line[0])
+            if check == False and (line[1] == '-' or line[1] == '+') and int(line[2]) > 500:
+                check = True
+                start_time = time_stamp
+            if line[1] == '-':
+                tot_bytes += int(line[2])
+            
+    return tot_bytes, time_stamp - start_time
