@@ -57,9 +57,12 @@ def evaluate(trace, exp_type, n_evals = 1, log = False):
     print(bw_file_1, bw_file_2, lt_file)
 
     if exp_type == 1:
-        exec_time_hb = measure_time(bw_file_1, bw_file_2, lt_file, ll_latency, data, queue_length, "all-hb")
-        print(exec_time_hb)
         exec_time_dc = measure_time(bw_file_1, bw_file_2, lt_file, ll_latency, data, queue_length, "pkt-state-rewards")
+        os.system("cp "+parent_folder+"packet-logs/packet-log-uplink "+parent_folder+"/packet-logs/tar_packet-log-uplink")
+        os.system("cp "+parent_folder+"packet-logs/packet-log-output-uplink "+parent_folder+"/packet-logs/tar_packet-log-output-uplink")
+        os.system("cp "+parent_folder+"packet-logs/packet-log-downlink "+parent_folder+"/packet-logs/tar_packet-log-downlink")
+        os.system("cp "+parent_folder+"packet-logs/packet-log-output-downlink "+parent_folder+"/packet-logs/tar_packet-log-output-downlink")
+        exec_time_hb = measure_time(bw_file_1, bw_file_2, lt_file, ll_latency, data, queue_length, "all-hb")
         if log:
             print(bandwidths_1, bandwidths_2, latencies, durations, ll_latency, queue_length, data)
             print(exec_time_dc, exec_time_hb)

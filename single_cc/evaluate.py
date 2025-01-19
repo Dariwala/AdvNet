@@ -63,12 +63,16 @@ def run_iperf_client(server_ip, duration, alg, bw_file, lt_file, queue_length = 
     command1 = "mm-delay-link-rrc 10 "+ parent_folder +"AdvNet/traces/"+lt_file+" "+ parent_folder +"AdvNet/traces/"+bw_file+" "+ parent_folder +"AdvNet/traces/"+bw_file+" "+ parent_folder +"packet-logs/ --uplink-log="+ parent_folder +"packet-logs/uplink --downlink-log="+ parent_folder +"packet-logs/downlink --uplink-queue=droptail --uplink-queue-args=packets="+ str(queue_length)
     command2 = "sudo iperf -c " + server_ip + " -Z " + alg + " -t " + str(duration / 1000)
     command3 = "sudo tcpdump -i ingress host 100.64.0.1 and port 5001 -w "+alg+".pcap &"
+    # command3 = "sudo python3 tcp_seq_extractor.py &"# > " + alg + "_ebpf"
+    print(command1)
     commands = f"""
             {command1}
+            {'sleep 0.5'}
             {command3}
             {command2}
         """
     output, errors = shell.communicate(commands)
+    print(output, errors)
     tot_bytes, duration = read_uplink()
     return tot_bytes * 8 * 1000 / (duration * 1024 * 1024), duration
 

@@ -10,6 +10,27 @@ import os
 from single_cc.evaluate import run_iperf_client as run_iperf_client_single_cc, read_packet_log_output_uplink
 from mptcp.convert import convert
 
+def read_packet_log_output_uplinks():
+    tot_delay = 0.0
+    count = 0
+    with open(parent_folder + "packet-logs/packet-log-output-uplink") as f:
+        output = f.read()
+        lines = output.split('\n')[:-1]
+        for line in lines:
+            if line != '':
+                line = line.split('\t')
+                tot_delay += float(line[0])
+                count += 1
+    with open(parent_folder + "packet-logs-2/packet-log-output-uplink") as f:
+        output = f.read()
+        lines = output.split('\n')[:-1]
+        for line in lines:
+            if line != '':
+                line = line.split('\t')
+                tot_delay += float(line[0])
+                count += 1
+    return tot_delay / count
+
 def create_commands(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, command_type, ref, kernel, queue_length):
     if command_type == 1 or command_type == 2 or command_type == 3:
         command1 = "mm-multipath 14 "+ parent_folder +"AdvNet/traces/"+ lt_file_1 +" "+ parent_folder + "AdvNet/traces/" + bw_file_1 +" "+ parent_folder + "AdvNet/traces/" + bw_file_1 +" "+ parent_folder +"packet-logs/ "+ parent_folder +"AdvNet/traces/"+ lt_file_2 +" "+ parent_folder +"AdvNet/traces/"+ bw_file_2 +" "+ parent_folder +"AdvNet/traces/"+ bw_file_2 +" "+ parent_folder +"packet-logs-2/ --uplink-queue-1=droptail --uplink-queue-args-1=packets="+str(queue_length)+" --uplink-queue-2=droptail --uplink-queue-args-2=packets="+str(queue_length)
@@ -31,30 +52,44 @@ def create_commands(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, co
             {command3}
         """
     elif kernel == "5":
-        command2 = "sleep 1"
+        command2 = "sleep 0.5"
         command3 = "sudo sysctl -w net.ipv4.tcp_congestion_control="+ref
         if command_type == 1 or command_type == 2:
-            command4 = "iperf -c 100.64.0.1 -t " + str(tot_duration / 1000)
+            command4 = "iperf -c 100.64.0.1 -t " + str(tot_duration / 1000)+ " -Z " + ref
         elif command_type == 3 or command_type == 4:
             command4 = "/usr/bin/time -f \"%e\" iperf -c 100.64.0.1 -n " + str(tot_duration) + "K" #tot_duration is tot_size here
-        command5 = "pkill -9 iperf"
+        command5 = "sudo pkill -9 iperf"
         command6 = "iperf -s &"
+        command7 = "exit"
+        command8 = "sudo tcpdump -i ingress-iface1 host 100.64.0.1 and port 5001 -w "+ref+"_link1.pcap &"
+        command9 = "sudo tcpdump -i ingress-iface2 host 100.64.0.3 and port 5001 -w "+ref+"_link2.pcap &"
         # command7 = "sudo tcpdump -i lo tcp and port 5001 -w "+ref+".pcap &"
         os.system(command5)
         os.system(command6)
+        os.system(command2)
+        # os.system("rm " + parent_folder + "packet-logs-2/queue-service-log-*")
+        # os.system("rm " + parent_folder + "packet-logs/queue-service-log-*")
+        # print("rm " + parent_folder + "packet-logs-2/queue-service-log-*")
         commands = f"""
             {command1}
             {command2}
-            {command3}
+            {command8}
+            {command9}
             {command4}
         """
     return commands
 
 def run_iperf3_client(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, command_type, ref, kernel, queue_length):
-    shell = subprocess.Popen("/bin/bash", stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    commands = create_commands(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, command_type, ref, kernel, queue_length)
-    output, errors = shell.communicate(commands)
-    print(errors)
+    while True:
+        shell = subprocess.Popen("/bin/bash", stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        commands = create_commands(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, command_type, ref, kernel, queue_length)
+        try:
+            output, errors = shell.communicate(commands, timeout=10)
+            print(output, errors)
+            break
+        except subprocess.TimeoutExpired:
+            shell.kill()
+            os.system("sudo pkill -9 mm")
 
     if command_type == 1 or command_type == 2:
         tot_bytes_1, duration_1 = read_uplink_mp(parent_folder + "packet-logs/queue-service-log-uplink")
@@ -134,12 +169,18 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, log = False, simplify
             throughput_mptcp, duration = run_iperf3_client(bw_file_1, lt_file_1, bw_file_2, lt_file_2, max(sum(durations_1), sum(durations_2)), 1, ref, kernel, queue_length)
             if throughput_mptcp > throughput_mptcp_max:
                 throughput_mptcp_max = throughput_mptcp
+                avg_delay_mptcp = read_packet_log_output_uplinks()
+        os.system("cp "+parent_folder+"packet-logs/packet-log-uplink "+parent_folder+"/packet-logs/tar_packet-log-uplink")
+        os.system("cp "+parent_folder+"packet-logs/packet-log-output-uplink "+parent_folder+"/packet-logs/tar_packet-log-output-uplink")
+        os.system("cp "+parent_folder+"packet-logs/packet-log-downlink "+parent_folder+"/packet-logs/tar_packet-log-downlink")
+        os.system("cp "+parent_folder+"packet-logs/packet-log-output-downlink "+parent_folder+"/packet-logs/tar_packet-log-output-downlink")
         os.system("sleep 1")
         for _ in range(n_evals):
             throughput_mptcp_single_link, duration = run_iperf_client_single_cc("100.64.0.1", sum(durations_1), ref, bw_file_1, lt_file_1, queue_length)
             if throughput_mptcp_single_link > throughput_mptcp_single_link_max:
                 throughput_mptcp_single_link_max = throughput_mptcp_single_link
-        logs.append([throughput_mptcp_single_link_max, throughput_mptcp_max])
+                avg_delay_mptcp_single_link = read_packet_log_output_uplink()
+        logs.append([throughput_mptcp_single_link_max, throughput_mptcp_max, avg_delay_mptcp_single_link, avg_delay_mptcp])
     elif mptcp_type == 5:
         throughput_mptcp_ref_max = -1.0
         throughput_mptcp_tar_max = -1.0
@@ -148,13 +189,25 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, log = False, simplify
             throughput_mptcp_tar, duration = run_iperf3_client(bw_file_1, lt_file_1, bw_file_2, lt_file_2, max(sum(durations_1), sum(durations_2)), 1, tar, kernel, queue_length)
             if throughput_mptcp_tar > throughput_mptcp_tar_max:
                 throughput_mptcp_tar_max = throughput_mptcp_tar
-        os.system("sleep 1;cp "+parent_folder+"packet-logs/queue-service-log-uplink "+parent_folder+"/packet-logs/temp_1")
-        os.system("cp "+parent_folder+"packet-logs-2/queue-service-log-uplink "+parent_folder+"/packet-logs-2/temp_2")
+                avg_delay_mptcp_tar = read_packet_log_output_uplinks()
+                os.system("sleep 0.1;cp "+parent_folder+"packet-logs/queue-service-log-uplink "+parent_folder+"/packet-logs/tar_uplink")
+                os.system("cp "+parent_folder+"packet-logs/queue-service-log-downlink "+parent_folder+"/packet-logs/tar_downlink")
+                os.system("cp "+parent_folder+"packet-logs/packet-log-uplink "+parent_folder+"/packet-logs/tar_packet-log-uplink")
+                os.system("cp "+parent_folder+"packet-logs/packet-log-output-uplink "+parent_folder+"/packet-logs/tar_packet-log-output-uplink")
+                os.system("cp "+parent_folder+"packet-logs/packet-log-downlink "+parent_folder+"/packet-logs/tar_packet-log-downlink")
+                os.system("cp "+parent_folder+"packet-logs/packet-log-output-downlink "+parent_folder+"/packet-logs/tar_packet-log-output-downlink")
+                os.system("cp "+parent_folder+"packet-logs-2/queue-service-log-uplink "+parent_folder+"/packet-logs-2/tar_uplink")
+                os.system("cp "+parent_folder+"packet-logs-2/queue-service-log-downlink "+parent_folder+"/packet-logs-2/tar_downlink")
+                os.system("cp "+parent_folder+"packet-logs-2/packet-log-uplink "+parent_folder+"/packet-logs-2/tar_packet-log-uplink")
+                os.system("cp "+parent_folder+"packet-logs-2/packet-log-output-uplink "+parent_folder+"/packet-logs-2/tar_packet-log-output-uplink")
+                os.system("cp "+parent_folder+"packet-logs-2/packet-log-downlink "+parent_folder+"/packet-logs-2/tar_packet-log-downlink")
+                os.system("cp "+parent_folder+"packet-logs-2/packet-log-output-downlink "+parent_folder+"/packet-logs-2/tar_packet-log-output-downlink")
         for _ in range(n_evals):
             throughput_mptcp_ref, duration = run_iperf3_client(bw_file_1, lt_file_1, bw_file_2, lt_file_2, max(sum(durations_1), sum(durations_2)), 1, ref, kernel, queue_length)
             if throughput_mptcp_ref > throughput_mptcp_ref_max:
                 throughput_mptcp_ref_max = throughput_mptcp_ref
-        logs.append([throughput_mptcp_ref_max, throughput_mptcp_tar_max])
+                avg_delay_mptcp_ref = read_packet_log_output_uplinks()
+        logs.append([throughput_mptcp_ref_max, throughput_mptcp_tar_max, avg_delay_mptcp_ref, avg_delay_mptcp_tar])
     elif mptcp_type == 6:
         throughput_sptcp_ref_max = -1.0
         throughput_sptcp_tar_max = -1.0
@@ -177,9 +230,10 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, log = False, simplify
     if log:
         return logs
     elif mptcp_type == 1:
-        return (throughput_mptcp_single_link_max - throughput_mptcp_max) / throughput_mptcp_single_link_max
+        return (throughput_mptcp_single_link_max - throughput_mptcp_max) / (throughput_mptcp_single_link_max * 2) + (avg_delay_mptcp - avg_delay_mptcp_single_link) / (avg_delay_mptcp * 2)
     elif mptcp_type == 5:
-        return (throughput_mptcp_ref_max - throughput_mptcp_tar_max) / throughput_mptcp_ref_max
+        score = (throughput_mptcp_ref_max - throughput_mptcp_tar_max) / (throughput_mptcp_ref_max * 2) + (avg_delay_mptcp_tar-avg_delay_mptcp_ref) / (avg_delay_mptcp_tar * 2)
+        return score
     elif mptcp_type == 6:
         # return (throughput_sptcp_ref_max - throughput_sptcp_tar_max) / throughput_sptcp_ref_max
         score = (throughput_sptcp_ref_max - throughput_sptcp_tar_max) / (throughput_sptcp_ref_max * 2) + (avg_delay_sptcp_tar-avg_delay_sptcp_ref) / (avg_delay_sptcp_tar * 2)
