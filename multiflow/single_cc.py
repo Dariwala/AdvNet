@@ -39,6 +39,10 @@ def evaluate(trace, ref, n_evals, tar, log = False):
     bandwidths, latencies, durations, queue_length = split(trace)
     bandwidths, latencies, durations, queue_length = convert(bandwidths, latencies, durations, queue_length)
 
+    bandwidths.append(bandwidths[0])
+    latencies.append(latencies[0])
+    durations.append(100 * 1000)
+
     bw_file = create_bandwidth_trace(bandwidths, durations)
     lt_file = create_delay_trace(latencies, durations)
 
@@ -53,8 +57,10 @@ def evaluate(trace, ref, n_evals, tar, log = False):
         
         if log:
             logs.append((ref_bytes, tar_bytes, (ref_bytes - tar_bytes) / ref_bytes))
-    
-        scores.append((ref_bytes - tar_bytes) / ref_bytes)
+        if ref_bytes == 0:
+            scores.append(-np.inf)
+        else:
+            scores.append((ref_bytes - tar_bytes) / ref_bytes)
     if log:
         # logs.append(np.var(scores))
         return logs

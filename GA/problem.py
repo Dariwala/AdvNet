@@ -33,13 +33,19 @@ class CCProblem(ElementwiseProblem):
             score = self.func(list(x), self.args[0], self.args[1], self.args[2], self.args[3])
         elif self.type == 4:
             score = self.func(list(x), self.args[0], self.args[1], self.args[2])
+        elif self.type == 5:
+            score = self.func(list(x), self.args[0], self.args[1], self.args[2])
         out["F"] =  -score##
         if score > self.max_score:##
             self.max_score = score
-            # with open("results/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[2]+"_2_timesteps_multiflow", "a") as f:
-            #     print(self.comps, self.max_score, list(x), file = f)
-            with open("results/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay", "a") as f:
+            with open("results/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[2]+"_2_timesteps_multiflow", "a") as f:
                 print(self.comps, self.max_score, list(x), file = f)
+            # with open("results/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay", "a") as f:
+            #     print(self.comps, self.max_score, list(x), file = f)
+            # with open("results/score_across_comparisons_GA_"+self.args[0]+"_1_vs_2links_2_timesteps_with_delay", "a") as f:
+            #     print(self.comps, self.max_score, list(x), file = f)
+            # with open("results/score_across_comparisons_GA_dc_vs_hb_2_timesteps", "a") as f:
+                # print(self.comps, self.max_score, list(x), file = f)
         # if True:
         #     with open("patterns/UC2_"+self.args[0]+"_"+self.args[4] + "_" + str((len(list(x))-1)//5)+"_timesteps_delay_coeff", "a") as f:
         #         print(list(x), score, file = f)
