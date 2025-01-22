@@ -5,7 +5,7 @@ def compute_convergence(times, bytes, delays):
     last_time = times[-1]
     throughputs = []
     chunk_no = 1
-    chunk_interval = 5000
+    chunk_interval = 2000
     chunks_to_consider = 5
     index = len(times)
     end_time = times[-1]
@@ -14,7 +14,7 @@ def compute_convergence(times, bytes, delays):
     avg_delays = []
     count = 0
 
-    while index >= 0:
+    while index >= 0 and len(throughputs) < chunks_to_consider:
         index -= 1
         curr_time = times[index]
         curr_byte = bytes[index]
@@ -38,7 +38,7 @@ def compute_convergence(times, bytes, delays):
         avg_delays.append(tot_delay / count)
     # for i in range(chunks_to_consider):
     #     print(throughputs[i], avg_delays[i])
-    return np.sum(throughputs[:chunks_to_consider]), np.std(avg_delays[:chunks_to_consider]) / np.mean(avg_delays[:chunks_to_consider])
+    return np.sum(throughputs), np.std(avg_delays) / np.mean(avg_delays)
 
 def parse(ref_port, tar_port):
     ref_packet_sizes_in_bytes = []
@@ -68,7 +68,7 @@ def parse(ref_port, tar_port):
     tar_bytes, tar_delay_cv = compute_convergence(tar_times, tar_packet_sizes_in_bytes, tar_packet_delays)
 
     print("CV of delay:", ref_delay_cv, tar_delay_cv)
-    if (ref_delay_cv > 0.1 or tar_delay_cv > 0.1):
+    if (ref_delay_cv > 0.1 or tar_delay_cv > 0.1) and False:
         return 0, 0
     else:
         return ref_bytes, tar_bytes

@@ -60,7 +60,10 @@ def evaluate(trace, ref, n_evals, tar, log = False):
         if ref_bytes == 0:
             scores.append(-np.inf)
         else:
-            scores.append((ref_bytes - tar_bytes) / ref_bytes)
+            # scores.append((ref_bytes - tar_bytes) / ref_bytes)
+            scores.append(ref_bytes / (ref_bytes + tar_bytes))
+    os.system("rm " + parent_folder+"AdvNet/traces/"+bw_file)
+    os.system("rm " + parent_folder+"AdvNet/traces/"+lt_file)
     if log:
         # logs.append(np.var(scores))
         return logs
