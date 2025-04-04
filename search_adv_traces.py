@@ -1,4 +1,5 @@
 import argparse
+import multiprocessing
 from single_cc.evaluate import evaluate
 from GA.problem import CCProblem
 from mptcp.evaluate import evaluate as evaluate_mptcp
@@ -6,9 +7,11 @@ from dchannel.evaluate import evaluate as evaluate_dchannel
 from picoquic.evaluate import evaluate as evaluate_picoquic
 from multiflow.single_cc import evaluate as evaluate_multiflow_single_cc
 from multiflow.mptcp import evaluate as evaluate_multiflow_mptcp
+from multiflow.picoquic_corrected import evaluate as evaluate_picoquic_multiflow_single_cc
 from random_generator.random_generator import RandomGeneration
 import os, subprocess
 from GA.ga import AdvNetGA
+from pymoo.core.problem import StarmapParallelization
 # from RL.bandit import Env, MonteCarloBanditAgent, bandit_learning
 from RL.single_agent_rl import RLlibEnv
 # from RL.multi_agent_rl import RLlibMultiAgentEnv, FlattenedMultiAgentEnv
@@ -51,7 +54,7 @@ if __name__ == "__main__":
     parser.add_argument('--pop_size', type=int, default=15, help='Number of individuals for GA')
     parser.add_argument('--n_iter', type=int, default=5, help='Number of iterations for GA')
     parser.add_argument('--total_time', type=float, default=5, help='Total time to run the emulation')
-    parser.add_argument('--n_calls', type=int, default=50, help='Number of calls to the expensive evaluation function for BO')
+    parser.add_argument('--n_processes', type=int, default=50, help='How many processes to spawn to parallelize')
     parser.add_argument('--fuzzing', action='store_true', help='Whether to enable link fuzzing of cc-fuzz or not')
     args = parser.parse_args()
 
@@ -100,9 +103,15 @@ if __name__ == "__main__":
             randomGenerator.save()
         elif args.alg == 1: #GA
             start_time = time.perf_counter()
-            problem = CCProblem(args.trace_length, args.l_bounds, args.u_bounds, evaluate_mptcp, args.seed, start_time, args.total_time, args.type, args.ref, args.n_eval, args.mptcp_type, args.kernel, args.tar)
+            # initialize the thread pool and create the runner
+            n_proccess = args.n_processes
+            pool = multiprocessing.Pool(n_proccess)
+            runner = StarmapParallelization(pool.starmap)
+            problem = CCProblem(args.trace_length, args.l_bounds, args.u_bounds, evaluate_mptcp, args.seed, start_time, args.total_time, args.type, args.ref, args.n_eval, args.mptcp_type, args.kernel, args.tar, elementwise_runner = runner)
             ga = AdvNetGA(problem, args.pop_size, args.seed, args.n_iter)
             result = ga.run()
+            pool.close()  # Prevents new tasks from being submitted
+            pool.join()   # Waits for all workers to finish
             # with open("UC2_SPTCP_Linux_Kernel_with_delay_coeff", "a") as f:
             #     print(args.ref, "vs", args.tar, (args.trace_length - 1) // 5, "timesteps", -result.F[0], result.X, time.perf_counter() - start_time, file = f)
             problem.save()
@@ -246,7 +255,20 @@ if __name__ == "__main__":
             result = ga.run()
             with open("dchannel_results", "a") as f:
                 print(-result.F[0], result.X, time.perf_counter() - start_time, file = f)
-        score = evaluate_dchannel([102, 145, 2, 6, 2, 2, 1, 1, 1, 5, 26], 1, 3, True)
+        elif args.alg == 3: #RL
+            gym_env = RLlibEnv(args.l_bounds, [args.u_bounds[i] - args.l_bounds[i] + 1 for i in range(args.trace_length)], args.n_eval, evaluate_dchannel, args.type, args.dchannel_exp_type)
+            
+            # Train using Stable-Baselines3
+            model = PPO("MlpPolicy", gym_env, verbose=1, n_steps = 2, batch_size = 2, learning_rate = 1e-4)
+
+            # Train the model
+            model.learn(total_timesteps=args.n_iter)
+
+            # Save the model
+            model.save(args.ref+"_"+args.tar+"_PPO")
+        # score = evaluate_dchannel([171, 57, 10, 4, 4, 2, 10, 5, 11], 1, 1, True) #balia 0.75
+        # score = evaluate_dchannel([101, 73, 8, 9, 4, 19, 67, 5, 14], 1, 1, True) # balia 2
+        score = evaluate_dchannel([282, 45, 10, 9, 24, 23, 41, 3, 45], 1, 1, True) # cubic 0.75
         print(score)
     elif args.type == 3: #picoquic
         if args.alg == 0: #Random
@@ -289,6 +311,23 @@ if __name__ == "__main__":
             problem = CCProblem(args.trace_length, args.l_bounds, args.u_bounds, evaluate_multiflow_mptcp, args.seed, start_time, args.total_time, args.type, args.ref, args.n_eval, args.tar)
             ga = AdvNetGA(problem, args.pop_size, args.seed, args.n_iter)
             result = ga.run()
+    elif args.type == 6: #multi-flow single cc picoquic
+        if args.alg == 1: #GA
+            start_time = time.perf_counter()
+            problem = CCProblem(args.trace_length, args.l_bounds, args.u_bounds, evaluate_picoquic_multiflow_single_cc, args.seed, start_time, args.total_time, args.type, args.ref, "bbr1", args.n_eval, args.tar)
+            ga = AdvNetGA(problem, args.pop_size, args.seed, args.n_iter)
+            result = ga.run()
+        elif args.alg == 3: #RL
+            gym_env = RLlibEnv(args.l_bounds, [args.u_bounds[i] - args.l_bounds[i] + 1 for i in range(args.trace_length)], args.n_eval, evaluate_picoquic_multiflow_single_cc, args.type, args.ref, "bbr1", args.tar)
+            
+            # Train using Stable-Baselines3
+            model = PPO("MlpPolicy", gym_env, verbose=1, n_steps = 2, batch_size = 2, learning_rate = 1e-4)
+
+            # Train the model
+            model.learn(total_timesteps=args.n_iter)
+
+            # Save the model
+            model.save(args.ref+"_"+args.tar+"_PPO")
             
     # os.system("rm traces/*")
     os.system("pkill -9 iperf")
