@@ -7,7 +7,8 @@ import subprocess
 from config import parent_folder
 import numpy as np
 import os
-from single_cc.evaluate import run_iperf_client as run_iperf_client_single_cc, read_packet_log_output_uplink
+import shutil
+from single_cc.evaluate import run_iperf_client_parallel as run_iperf_client_single_cc, read_packet_log_output_uplink
 from mptcp.convert import convert
 
 def read_packet_log_output_uplinks():
@@ -63,6 +64,8 @@ def create_commands(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, co
         command7 = "exit"
         command8 = "sudo tcpdump -i ingress-iface1 host 100.64.0.1 and port 5001 -w "+ref+"_link1.pcap &"
         command9 = "sudo tcpdump -i ingress-iface2 host 100.64.0.3 and port 5001 -w "+ref+"_link2.pcap &"
+        # command8 = "sudo tcpdump -i multipath-if1-7 host 100.64.0.1 and port 5001 -w "+ref+"_link1_egress.pcap &"
+        # command9 = "sudo tcpdump -i multipath-if2-7 host 100.64.0.3 and port 5001 -w "+ref+"_link2_egress.pcap &"
         # command7 = "sudo tcpdump -i lo tcp and port 5001 -w "+ref+".pcap &"
         os.system(command5)
         os.system(command6)
@@ -70,11 +73,12 @@ def create_commands(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, co
         # os.system("rm " + parent_folder + "packet-logs-2/queue-service-log-*")
         # os.system("rm " + parent_folder + "packet-logs/queue-service-log-*")
         # print("rm " + parent_folder + "packet-logs-2/queue-service-log-*")
+        print(command4)
         commands = f"""
             {command1}
             {command2}
-            {command8}
-            {command9}
+            {command3}
+            {command2}
             {command4}
         """
     return commands
@@ -84,12 +88,14 @@ def run_iperf3_client(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, 
         shell = subprocess.Popen("/bin/bash", stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         commands = create_commands(bw_file_1, lt_file_1, bw_file_2, lt_file_2, tot_duration, command_type, ref, kernel, queue_length)
         try:
-            output, errors = shell.communicate(commands, timeout=10)
+            output, errors = shell.communicate(commands, timeout=15)
             print(output, errors)
             break
         except subprocess.TimeoutExpired:
+            print("ekhane")
             shell.kill()
             os.system("sudo pkill -9 mm")
+            break
 
     if command_type == 1 or command_type == 2:
         tot_bytes_1, duration_1 = read_uplink_mp(parent_folder + "packet-logs/queue-service-log-uplink")
@@ -215,17 +221,19 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, log = False, simplify
         # delay_sptcp_tar_min = 100000
 
         for _ in range(n_evals):
-            throughput_sptcp_tar, duration = run_iperf_client_single_cc("100.64.0.1", sum(durations_1), tar, bw_file_1, lt_file_1, queue_length)
+            throughput_sptcp_tar, duration, folder = run_iperf_client_single_cc("100.64.0.1", sum(durations_1), tar, bw_file_1, lt_file_1, queue_length)
             if throughput_sptcp_tar > throughput_sptcp_tar_max:
                 throughput_sptcp_tar_max = throughput_sptcp_tar
-                avg_delay_sptcp_tar = read_packet_log_output_uplink()
+                avg_delay_sptcp_tar = read_packet_log_output_uplink(folder)
                 os.system("sleep 1;cp "+parent_folder+"packet-logs/uplink "+parent_folder+"/packet-logs/tar_uplink")
                 os.system("cp "+parent_folder+"packet-logs/packet-log-output-uplink "+parent_folder+"/packet-logs/tar_packet-log-output-uplink")
+            shutil.rmtree(parent_folder + folder)
         for _ in range(n_evals):
-            throughput_sptcp_ref, duration = run_iperf_client_single_cc("100.64.0.1", sum(durations_1), ref, bw_file_1, lt_file_1, queue_length)
+            throughput_sptcp_ref, duration, folder = run_iperf_client_single_cc("100.64.0.1", sum(durations_1), ref, bw_file_1, lt_file_1, queue_length)
             if throughput_sptcp_ref > throughput_sptcp_ref_max:
                 throughput_sptcp_ref_max = throughput_sptcp_ref
-                avg_delay_sptcp_ref = read_packet_log_output_uplink()
+                avg_delay_sptcp_ref = read_packet_log_output_uplink(folder)
+            shutil.rmtree(parent_folder + folder)
         logs.append([throughput_sptcp_ref_max, throughput_sptcp_tar_max, avg_delay_sptcp_ref, avg_delay_sptcp_tar])
     if log:
         return logs

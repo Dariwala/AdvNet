@@ -8,11 +8,13 @@ import re
 import threading
 from time import sleep
 import os
+import uuid
+import shutil
 import numpy as np
 from config import parent_folder
 
-def read_uplink():
-    with open(parent_folder + "packet-logs/uplink") as f:
+def read_uplink(folder):
+    with open(parent_folder + folder + "uplink") as f:
         output = f.read()
         # throughput = output.split("\n")[-2].split()[-4]
         # unit = output.split("\n")[-2].split()[-3]
@@ -31,8 +33,8 @@ def read_uplink():
                 tot_bytes += int(line[2])
     return tot_bytes, duration
 
-def read_packet_log_output_uplink():
-    with open(parent_folder + "packet-logs/packet-log-output-uplink") as f:
+def read_packet_log_output_uplink(folder):
+    with open(parent_folder + folder + "packet-log-output-uplink") as f:
         output = f.read()
         lines = output.split('\n')[:-1]
         tot_delay = 0.0
@@ -64,17 +66,64 @@ def run_iperf_client(server_ip, duration, alg, bw_file, lt_file, queue_length = 
     command2 = "sudo iperf -c " + server_ip + " -Z " + alg + " -t " + str(duration / 1000)
     command3 = "sudo tcpdump -i ingress host 100.64.0.1 and port 5001 -w "+alg+".pcap &"
     # command3 = "sudo python3 tcp_seq_extractor.py &"# > " + alg + "_ebpf"
-    print(command1)
+    # print(command1)
     commands = f"""
             {command1}
             {'sleep 0.5'}
-            {command3}
             {command2}
         """
     output, errors = shell.communicate(commands)
     print(output, errors)
     tot_bytes, duration = read_uplink()
     return tot_bytes * 8 * 1000 / (duration * 1024 * 1024), duration
+
+def run_iperf_client_parallel(server_ip, duration, alg, bw_file, lt_file, queue_length = 860):
+    # Run iperf client and capture output
+    # while True:
+    #     result = subprocess.run(['iperf', '-c', server_ip, '-t', str(duration / 1000), '-Z', alg], stdout=subprocess.PIPE, text=True)
+    #     if result.stdout == "":
+    #         # print("Hihi")
+    #         sleep(0.1)
+    #         continue
+    #     else:
+    #         return result.stdout
+    # print("mm-delay-link-rrc 8 ~/AdvNet/traces/"+lt_file+" ~/AdvNet/traces/"+bw_file+" ~/AdvNet/traces/"+bw_file+" ~/packet-logs/ --uplink-queue=droptail --uplink-queue-args=packets=100 iperf -c " + server_ip + " -Z " + alg + " -t " + str(duration / 1000) + " >> temp")
+    # os.system("pkill -9 iperf")
+    # os.system("iperf -s &")
+    # os.system("sleep 0.9")
+    # os.system("mm-delay-link-rrc 10 "+ parent_folder +"AdvNet/traces/"+lt_file+" "+ parent_folder +"AdvNet/traces/"+bw_file+" "+ parent_folder +"AdvNet/traces/"+bw_file+" "+ parent_folder +"packet-logs/ --uplink-log="+ parent_folder +"packet-logs/uplink --downlink-log="+ parent_folder +"packet-logs/downlink --uplink-queue=droptail --uplink-queue-args=packets="+ str(queue_length) +" sudo iperf -c " + server_ip + " -Z " + alg + " -t " + str(duration / 1000))
+    folder = f"{uuid.uuid4().hex}/"
+    os.makedirs(parent_folder + folder)
+    shell = subprocess.Popen("/bin/bash",stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,bufsize=1)
+    command1 = "mm-delay-link-rrc 10 "+ parent_folder +"AdvNet/traces/"+lt_file+" "+ parent_folder +"AdvNet/traces/"+bw_file+" "+ parent_folder +"AdvNet/traces/"+bw_file+" "+ parent_folder + folder + " --uplink-log="+ parent_folder + folder + "uplink --downlink-log="+ parent_folder + folder + "downlink --uplink-queue=droptail --uplink-queue-args=packets="+ str(queue_length)
+    command3 = "sudo tcpdump -i ingress host 100.64.0.1 and port 5001 -w "+alg+".pcap &"
+    # command3 = "sudo python3 tcp_seq_extractor.py &"# > " + alg + "_ebpf"
+    # print(command1)
+    commands = f"""
+            {command1}
+            {'sleep 0.5'}
+        """
+    egress_addr = run_command(shell, commands, True)
+    command2 = "sudo iperf -c " + egress_addr + " -Z " + alg + " -t " + str(duration / 1000)
+    _ = run_command(shell, command2, False)
+    # shell.stdin.close()  # Close input stream when done
+    stdout, stderr = shell.communicate(timeout=10)  # Final read with timeout
+    print(stdout, stderr)
+    tot_bytes, duration = read_uplink(folder)
+    return tot_bytes * 8 * 1000 / (duration * 1024 * 1024), duration, folder
+
+# Function to send a shell start command and capture its egress
+def run_command(shell, command, egress_needed):
+    shell.stdin.write(command + "\n")  # Send command
+    shell.stdin.flush()  # Ensure command is executed
+    egress_addr = None
+    # output = []
+    while egress_needed:
+        line = shell.stdout.readline()
+        if "egress_addr:" in line:  # Stop reading once we find ingress_addr
+            egress_addr = line.split(":")[1].strip()
+            break 
+    return egress_addr
 
 def get_throughput(bw_file, lt_file, tot_duration, alg, queue_length):
     # Run iperf client
