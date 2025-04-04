@@ -35,22 +35,34 @@ class CCProblem(ElementwiseProblem):
             score = self.func(list(x), self.args[0], self.args[1], self.args[2])
         elif self.type == 5:
             score = self.func(list(x), self.args[0], self.args[1], self.args[2])
+        elif self.type == 6:
+            score = self.func(list(x), self.args[0], self.args[1], self.args[2], self.args[3])
         out["F"] =  -score##
-        if score > self.max_score:##
-            self.max_score = score
-            with open("results/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[2]+"_2_timesteps_multiflow", "a") as f:
-                print(self.comps, self.max_score, list(x), file = f)
-            # with open("results/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay", "a") as f:
-            #     print(self.comps, self.max_score, list(x), file = f)
-            # with open("results/score_across_comparisons_GA_"+self.args[0]+"_1_vs_2links_2_timesteps_with_delay", "a") as f:
-            #     print(self.comps, self.max_score, list(x), file = f)
-            # with open("results/score_across_comparisons_GA_dc_vs_hb_2_timesteps", "a") as f:
-                # print(self.comps, self.max_score, list(x), file = f)
+        self.update_max_score(x, score)
         # if True:
         #     with open("patterns/UC2_"+self.args[0]+"_"+self.args[4] + "_" + str((len(list(x))-1)//5)+"_timesteps_delay_coeff", "a") as f:
         #         print(list(x), score, file = f)
         # else:
         #     out["F"] = -self.max_score##
+    
+    def update_max_score(self, x, score):
+        if score > self.max_score:##
+            self.max_score = score
+            if self.type == 6:
+                with open("results/score_across_comparisons_GA_"+self.args[0]+"_and_"+self.args[1]+"_vs_"+self.args[3]+"_2_timesteps_multiflow_picoquic", "a") as f:
+                    print(self.comps, self.max_score, list(x), file = f)
+            elif self.type == 1:
+                if self.args[2] == 6:
+                    with open("results/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay", "a") as f:
+                        print(self.comps, self.max_score, list(x), file = f)
+                elif self.args[2] == 5:
+                    with open("results/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_2_links_with_delay", "a") as f:
+                        print(self.comps, self.max_score, list(x), file = f)
+            # with open("results/score_across_comparisons_GA_"+self.args[0]+"_1_vs_2links_2_timesteps_with_delay", "a") as f:
+            #     print(self.comps, self.max_score, list(x), file = f)
+            elif self.type == 2:
+                with open("results/score_across_comparisons_GA_dc_vs_hb_2_timesteps", "a") as f:
+                    print(self.comps, self.max_score, list(x), file = f)
     
     def save(self):
         if self.type == 0:
