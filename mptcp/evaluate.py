@@ -131,7 +131,7 @@ def get_maximum_throughput(bw_file, actual_duration):
     return tot_bytes * 8 * 1000
     
 
-def evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, log = False, simplify = False, index = -1):
+def evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, log = False, lock = None, core_number = 0, simplify = False, index = -1):
     if not simplify:
         trace = convert(trace, mptcp_type)
         bandwidths_1, latencies_1, durations, bandwidths_2, latencies_2, queue_length = split_trace(trace, mptcp_type)
@@ -221,7 +221,7 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, log = False, simplify
         # delay_sptcp_tar_min = 100000
 
         for _ in range(n_evals):
-            throughput_sptcp_tar, duration, folder = run_iperf_client_single_cc("100.64.0.1", sum(durations_1), tar, bw_file_1, lt_file_1, queue_length)
+            throughput_sptcp_tar, duration, folder = run_iperf_client_single_cc("100.64.0.1", sum(durations_1), tar, bw_file_1, lt_file_1, queue_length, lock, core_number)
             if throughput_sptcp_tar > throughput_sptcp_tar_max:
                 throughput_sptcp_tar_max = throughput_sptcp_tar
                 avg_delay_sptcp_tar = read_packet_log_output_uplink(folder)
@@ -229,7 +229,7 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, log = False, simplify
                 os.system("cp "+parent_folder+"packet-logs/packet-log-output-uplink "+parent_folder+"/packet-logs/tar_packet-log-output-uplink")
             shutil.rmtree(parent_folder + folder)
         for _ in range(n_evals):
-            throughput_sptcp_ref, duration, folder = run_iperf_client_single_cc("100.64.0.1", sum(durations_1), ref, bw_file_1, lt_file_1, queue_length)
+            throughput_sptcp_ref, duration, folder = run_iperf_client_single_cc("100.64.0.1", sum(durations_1), ref, bw_file_1, lt_file_1, queue_length, lock, core_number)
             if throughput_sptcp_ref > throughput_sptcp_ref_max:
                 throughput_sptcp_ref_max = throughput_sptcp_ref
                 avg_delay_sptcp_ref = read_packet_log_output_uplink(folder)

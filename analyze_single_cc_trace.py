@@ -57,13 +57,15 @@ if __name__ == "__main__":
     parser.add_argument('--ref', type=str, default="cubic", help='Reference algorithm')
     parser.add_argument('--tar', type=str, default="cubic", help='Reference algorithm')
     parser.add_argument('--mptcp_type', type=int)
+    parser.add_argument('--n_processes', type=int)
     # parser.add_argument('--uplink_file_name', type = str, help = "Uplink file name")
     parser.add_argument('--fuzzing', action='store_true', help='Whether to enable link fuzzing of cc-fuzz or not')
     parser.add_argument('--mptcp', action='store_true', help='Whether it is mptcp or not')
+    parser.add_argument('--multiprocessing', action='store_true', help='Whether it is multiprocessing or not')
     parser.add_argument('--picoquic', action='store_true', help='Whether it is picoquic or not')
     parser.add_argument('--multiflow', action='store_true', help='Whether it is multiflow or not')
     args = parser.parse_args()
-    os.system("iperf -s &")
+    #os.system("iperf -s &")
     if not args.mptcp and not args.picoquic and not args.multiflow:
         with open("log", "w") as f:
             for _ in range(1):
@@ -72,7 +74,7 @@ if __name__ == "__main__":
                 print(score)
                 # print(score[0][0], score[0][1], file = f)
                 # os.system("sleep 0.5")
-        os.system("pkill -9 iperf")
+        os.system("sudo pkill -9 iperf")
 
         # os.system("cp /home/shehaba2/packet-logs/uplink results/uplink_" + args.uplink_file_name)
 
@@ -91,134 +93,150 @@ if __name__ == "__main__":
         print(x)
         print(ys)
     elif args.mptcp:
-        score = evaluate_mptcp(args.trace, args.ref, 1, args.mptcp_type, "5", args.tar, True)
-        print(score)
-        if args.mptcp_type == 1:
-            bandwidths_1 = get_continuous_throughput(parent_folder + "packet-logs/queue-service-log-uplink", get_start_time("queue-service-log-uplink", "queue-service-log-uplink"))
-            bandwidths_2 = get_continuous_throughput(parent_folder + "packet-logs-2/queue-service-log-uplink", get_start_time("queue-service-log-uplink", "queue-service-log-uplink"))
-            bandwidths_sptcp = get_continuous_throughput(parent_folder + "packet-logs/uplink")
-            x = []
-            y1 = []
-            y2 = []
-            ys_1 = []
+        if args.multiprocessing:
+            import multiprocessing
+            with multiprocessing.Manager() as manager:
+                lock = manager.Lock()
+                core_number = manager.Value('i', 0)  # 'i' for int
+                res = []
+                for _ in range(10):
+                    param_list = [(args.trace, args.ref, 1, args.mptcp_type, "5", args.tar, True, lock, core_number) for _ in range(args.n_processes)]
 
-            for time, bandwidth, throughput in bandwidths_1:
-                x.append(time)
-                y1.append(bandwidth)
-                y2.append(throughput)
-            ys_1 = [y1, y2]
-            print(x)
-            print(ys_1)
+                    with multiprocessing.Pool(processes=args.n_processes) as pool:
+                        scores = pool.starmap(evaluate_mptcp, param_list)
+                    for score in scores:
+                        res.append(score)
+            for r in res:
+                print(r[0][0], r[0][1], r[0][2], r[0][3], sep="\t")
+        else:
+            score = evaluate_mptcp(args.trace, args.ref, 1, args.mptcp_type, "5", args.tar, True)
+            print(score)
+            if args.mptcp_type == 1:
+                bandwidths_1 = get_continuous_throughput(parent_folder + "packet-logs/queue-service-log-uplink", get_start_time("queue-service-log-uplink", "queue-service-log-uplink"))
+                bandwidths_2 = get_continuous_throughput(parent_folder + "packet-logs-2/queue-service-log-uplink", get_start_time("queue-service-log-uplink", "queue-service-log-uplink"))
+                bandwidths_sptcp = get_continuous_throughput(parent_folder + "packet-logs/uplink")
+                x = []
+                y1 = []
+                y2 = []
+                ys_1 = []
 
-            x = []
-            y1 = []
-            y2 = []
-            ys_2 = []
+                for time, bandwidth, throughput in bandwidths_1:
+                    x.append(time)
+                    y1.append(bandwidth)
+                    y2.append(throughput)
+                ys_1 = [y1, y2]
+                print(x)
+                print(ys_1)
 
-            for time, bandwidth, throughput in bandwidths_2:
-                x.append(time)
-                y1.append(bandwidth)
-                y2.append(throughput)
-            ys_2 = [y1, y2]
-            print(x)
-            print(ys_2)
+                x = []
+                y1 = []
+                y2 = []
+                ys_2 = []
 
-            x = []
-            y1 = []
-            y2 = []
-            ys_sp = []
+                for time, bandwidth, throughput in bandwidths_2:
+                    x.append(time)
+                    y1.append(bandwidth)
+                    y2.append(throughput)
+                ys_2 = [y1, y2]
+                print(x)
+                print(ys_2)
 
-            for time, bandwidth, throughput in bandwidths_sptcp:
-                x.append(time)
-                y1.append(bandwidth)
-                y2.append(throughput)
-            ys_sp = [y1, y2]
-            print(x)
-            print(ys_sp)
-        elif args.mptcp_type == 5:
-            bandwidths_1_ref = get_continuous_throughput(parent_folder + "packet-logs/queue-service-log-uplink", get_start_time("queue-service-log-uplink", "queue-service-log-uplink"))
-            bandwidths_2_ref = get_continuous_throughput(parent_folder + "packet-logs-2/queue-service-log-uplink", get_start_time("queue-service-log-uplink", "queue-service-log-uplink"))
-            bandwidths_1_tar = get_continuous_throughput(parent_folder + "packet-logs/temp_1", get_start_time("temp_1", "temp_2"))
-            bandwidths_2_tar = get_continuous_throughput(parent_folder + "packet-logs-2/temp_2", get_start_time("temp_1", "temp_2"))
-            x = []
-            y1 = []
-            y2 = []
-            ys_1 = []
+                x = []
+                y1 = []
+                y2 = []
+                ys_sp = []
 
-            for time, bandwidth, throughput in bandwidths_1_ref:
-                x.append(time)
-                y1.append(bandwidth)
-                y2.append(throughput)
-            ys_1 = [y1, y2]
-            print(x)
-            print(ys_1)
+                for time, bandwidth, throughput in bandwidths_sptcp:
+                    x.append(time)
+                    y1.append(bandwidth)
+                    y2.append(throughput)
+                ys_sp = [y1, y2]
+                print(x)
+                print(ys_sp)
+            elif args.mptcp_type == 5:
+                bandwidths_1_ref = get_continuous_throughput(parent_folder + "packet-logs/queue-service-log-uplink", get_start_time("queue-service-log-uplink", "queue-service-log-uplink"))
+                bandwidths_2_ref = get_continuous_throughput(parent_folder + "packet-logs-2/queue-service-log-uplink", get_start_time("queue-service-log-uplink", "queue-service-log-uplink"))
+                bandwidths_1_tar = get_continuous_throughput(parent_folder + "packet-logs/temp_1", get_start_time("temp_1", "temp_2"))
+                bandwidths_2_tar = get_continuous_throughput(parent_folder + "packet-logs-2/temp_2", get_start_time("temp_1", "temp_2"))
+                x = []
+                y1 = []
+                y2 = []
+                ys_1 = []
 
-            x = []
-            y1 = []
-            y2 = []
-            ys_2 = []
+                for time, bandwidth, throughput in bandwidths_1_ref:
+                    x.append(time)
+                    y1.append(bandwidth)
+                    y2.append(throughput)
+                ys_1 = [y1, y2]
+                print(x)
+                print(ys_1)
 
-            for time, bandwidth, throughput in bandwidths_2_ref:
-                x.append(time)
-                y1.append(bandwidth)
-                y2.append(throughput)
-            ys_2 = [y1, y2]
-            print(x)
-            print(ys_2)
+                x = []
+                y1 = []
+                y2 = []
+                ys_2 = []
 
-            x = []
-            y1 = []
-            y2 = []
-            ys_1 = []
+                for time, bandwidth, throughput in bandwidths_2_ref:
+                    x.append(time)
+                    y1.append(bandwidth)
+                    y2.append(throughput)
+                ys_2 = [y1, y2]
+                print(x)
+                print(ys_2)
 
-            for time, bandwidth, throughput in bandwidths_1_tar:
-                x.append(time)
-                y1.append(bandwidth)
-                y2.append(throughput)
-            ys_1 = [y1, y2]
-            print(x)
-            print(ys_1)
+                x = []
+                y1 = []
+                y2 = []
+                ys_1 = []
 
-            x = []
-            y1 = []
-            y2 = []
-            ys_2 = []
+                for time, bandwidth, throughput in bandwidths_1_tar:
+                    x.append(time)
+                    y1.append(bandwidth)
+                    y2.append(throughput)
+                ys_1 = [y1, y2]
+                print(x)
+                print(ys_1)
 
-            for time, bandwidth, throughput in bandwidths_2_tar:
-                x.append(time)
-                y1.append(bandwidth)
-                y2.append(throughput)
-            ys_2 = [y1, y2]
-            print(x)
-            print(ys_2)
-        elif args.mptcp_type == 6:
-            bandwidths_sptcp_ref = get_continuous_throughput(parent_folder + "packet-logs/uplink")
-            bandwidths_sptcp_tar = get_continuous_throughput(parent_folder + "packet-logs/tar_uplink")
-            x = []
-            y1 = []
-            y2 = []
-            ys_1 = []
+                x = []
+                y1 = []
+                y2 = []
+                ys_2 = []
 
-            for time, bandwidth, throughput in bandwidths_sptcp_ref:
-                x.append(time)
-                y1.append(bandwidth)
-                y2.append(throughput)
-            ys_1 = [y1, y2]
-            print(x)
-            print(ys_1)
+                for time, bandwidth, throughput in bandwidths_2_tar:
+                    x.append(time)
+                    y1.append(bandwidth)
+                    y2.append(throughput)
+                ys_2 = [y1, y2]
+                print(x)
+                print(ys_2)
+            elif args.mptcp_type == 6:
+                bandwidths_sptcp_ref = get_continuous_throughput(parent_folder + "packet-logs/uplink")
+                bandwidths_sptcp_tar = get_continuous_throughput(parent_folder + "packet-logs/tar_uplink")
+                x = []
+                y1 = []
+                y2 = []
+                ys_1 = []
 
-            x = []
-            y1 = []
-            y2 = []
-            ys_2 = []
+                for time, bandwidth, throughput in bandwidths_sptcp_ref:
+                    x.append(time)
+                    y1.append(bandwidth)
+                    y2.append(throughput)
+                ys_1 = [y1, y2]
+                print(x)
+                print(ys_1)
 
-            for time, bandwidth, throughput in bandwidths_sptcp_tar:
-                x.append(time)
-                y1.append(bandwidth)
-                y2.append(throughput)
-            ys_2 = [y1, y2]
-            print(x)
-            print(ys_2)
+                x = []
+                y1 = []
+                y2 = []
+                ys_2 = []
+
+                for time, bandwidth, throughput in bandwidths_sptcp_tar:
+                    x.append(time)
+                    y1.append(bandwidth)
+                    y2.append(throughput)
+                ys_2 = [y1, y2]
+                print(x)
+                print(ys_2)
     elif args.picoquic:
         if args.mptcp_type == 1:
             score = evaluate_picoquic(args.trace, args.mptcp_type, args.ref, args.tar, 1, True)
