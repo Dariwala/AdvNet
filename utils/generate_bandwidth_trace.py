@@ -4,6 +4,7 @@ def create_trace(bandwidths, durations):
     unique_filename = f"file_{float(time.time())}"
 
     with open("traces/" + unique_filename, 'w') as file:
+        file.write("PDO\n")
         base_time = 0
         for i, duration in enumerate(durations):
             bandwidth = bandwidths[i]
@@ -20,6 +21,15 @@ def create_trace(bandwidths, durations):
             for pdo in pdos:
                 file.write(str(pdo)+"\n")
         return unique_filename
+
+def create_trace_non_pdo(bandwidths, durations):
+    unique_filename = f"file_{float(time.time())}"
+
+    with open("traces/" + unique_filename, 'w') as file:
+        file.write("NON-PDO\n")
+        for i, _ in enumerate(bandwidths):
+            file.write(str(bandwidths[i]) + " " + str(durations[i]) + "\n")
+    return unique_filename
     
 def create_trace_fuzzing(pdos):
     unique_filename = f"file_{float(time.time())}"

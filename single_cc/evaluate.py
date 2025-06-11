@@ -89,9 +89,9 @@ def run_iperf_client_parallel(server_ip, duration, alg, bw_file, lt_file, queue_
     #     else:
     #         return result.stdout
     # print("mm-delay-link-rrc 8 ~/AdvNet/traces/"+lt_file+" ~/AdvNet/traces/"+bw_file+" ~/AdvNet/traces/"+bw_file+" ~/packet-logs/ --uplink-queue=droptail --uplink-queue-args=packets=100 iperf -c " + server_ip + " -Z " + alg + " -t " + str(duration / 1000) + " >> temp")
-    # os.system("pkill -9 iperf")
-    # os.system("iperf -s &")
-    # os.system("sleep 0.9")
+    os.system("pkill -9 iperf")
+    os.system("taskset -c 0 iperf -s &")
+    os.system("sleep 0.9")
     # os.system("mm-delay-link-rrc 10 "+ parent_folder +"AdvNet/traces/"+lt_file+" "+ parent_folder +"AdvNet/traces/"+bw_file+" "+ parent_folder +"AdvNet/traces/"+bw_file+" "+ parent_folder +"packet-logs/ --uplink-log="+ parent_folder +"packet-logs/uplink --downlink-log="+ parent_folder +"packet-logs/downlink --uplink-queue=droptail --uplink-queue-args=packets="+ str(queue_length) +" sudo iperf -c " + server_ip + " -Z " + alg + " -t " + str(duration / 1000))
     folder = f"{uuid.uuid4().hex}/"
     os.makedirs(parent_folder + folder)
