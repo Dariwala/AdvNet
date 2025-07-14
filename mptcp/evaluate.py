@@ -1,5 +1,5 @@
 from mptcp.split_trace import split_trace, split_trace_simplify
-from utils.generate_bandwidth_trace import create_trace as create_bandwidth_trace
+from utils.generate_bandwidth_trace import create_trace_non_pdo as create_bandwidth_trace
 from utils.generate_delay_trace import create_trace as create_delay_trace
 from utils.scale_up import scale_up
 from utils.read_uplink import read_uplink, read_uplink_mp
@@ -221,18 +221,18 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, log = False, lock = N
         # delay_sptcp_tar_min = 100000
 
         for _ in range(n_evals):
-            throughput_sptcp_tar, duration, folder = run_iperf_client_single_cc("100.64.0.1", sum(durations_1), tar, bw_file_1, lt_file_1, queue_length, lock, core_number)
+            _, _, folder = run_iperf_client_single_cc("100.64.0.1", sum(durations_1), tar, bw_file_1, lt_file_1, queue_length, lock, core_number)
+            avg_delay_sptcp_tar, throughput_sptcp_tar, duration = read_packet_log_output_uplink(folder)
             if throughput_sptcp_tar > throughput_sptcp_tar_max:
                 throughput_sptcp_tar_max = throughput_sptcp_tar
-                avg_delay_sptcp_tar = read_packet_log_output_uplink(folder)
                 os.system("sleep 1;cp "+parent_folder+"packet-logs/uplink "+parent_folder+"/packet-logs/tar_uplink")
                 os.system("cp "+parent_folder+"packet-logs/packet-log-output-uplink "+parent_folder+"/packet-logs/tar_packet-log-output-uplink")
             shutil.rmtree(parent_folder + folder)
         for _ in range(n_evals):
-            throughput_sptcp_ref, duration, folder = run_iperf_client_single_cc("100.64.0.1", sum(durations_1), ref, bw_file_1, lt_file_1, queue_length, lock, core_number)
+            _, _, folder = run_iperf_client_single_cc("100.64.0.1", sum(durations_1), ref, bw_file_1, lt_file_1, queue_length, lock, core_number)
+            avg_delay_sptcp_ref, throughput_sptcp_ref, duration = read_packet_log_output_uplink(folder)
             if throughput_sptcp_ref > throughput_sptcp_ref_max:
                 throughput_sptcp_ref_max = throughput_sptcp_ref
-                avg_delay_sptcp_ref = read_packet_log_output_uplink(folder)
             shutil.rmtree(parent_folder + folder)
         logs.append([throughput_sptcp_ref_max, throughput_sptcp_tar_max, avg_delay_sptcp_ref, avg_delay_sptcp_tar])
     if log:

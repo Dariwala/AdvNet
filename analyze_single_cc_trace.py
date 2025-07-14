@@ -99,7 +99,7 @@ if __name__ == "__main__":
                 lock = manager.Lock()
                 core_number = manager.Value('i', 0)  # 'i' for int
                 res = []
-                for _ in range(10):
+                for _ in range(1):
                     param_list = [(args.trace, args.ref, 1, args.mptcp_type, "5", args.tar, True, lock, core_number) for _ in range(args.n_processes)]
 
                     with multiprocessing.Pool(processes=args.n_processes) as pool:
