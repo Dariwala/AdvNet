@@ -35,6 +35,8 @@ def read_uplink(folder):
     return tot_bytes, duration
 
 def get_port(folder):
+    no_of_validations = 10
+    port_vs_count = {}
     with open(parent_folder + folder + "packet-log-uplink") as f:
         output = f.read()
         lines = output.split('\n')[1:-1]
@@ -45,7 +47,11 @@ def get_port(folder):
                     server_ip = line[3].split(':')[0]
                     if '100.64.0' in server_ip:
                         dst_port = line[2].split(':')[1]
-                        return dst_port
+                        if dst_port not in port_vs_count:
+                            port_vs_count[dst_port] = 0
+                        port_vs_count[dst_port] += 1
+                        if port_vs_count[dst_port] == no_of_validations:
+                            return dst_port
 
 def read_packet_log_output_uplink(folder):
     port = get_port(folder)
