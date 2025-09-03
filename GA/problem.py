@@ -19,33 +19,36 @@ class CCProblem(ElementwiseProblem):
         super().__init__(n_var=trace_length, n_obj=1, n_ieq_constr=0, n_eq_constr = 0, xl=lower_bound, xu=upper_bound, **kwargs)
 
     def _evaluate(self, x, out, *args, **kwargs):
-        # time_passed = time.perf_counter() - self.start_time
+        time_passed = time.perf_counter() - self.start_time
 
-        # if time_passed < self.total_time:
-        self.comps += 1
-        if self.type == 0:
-            score = self.func(list(x), self.args[0], self.args[1], fuzzing = self.args[2])
-        elif self.type == 1:
-            score = self.func(list(x), self.args[0], self.args[1], self.args[2], self.args[3], self.args[4])
-        elif self.type == 2:
-            score = self.func(list(x), self.args[0])
-        elif self.type == 3:
-            score = self.func(list(x), self.args[0], self.args[1], self.args[2], self.args[3])
-        elif self.type == 4:
-            score = self.func(list(x), self.args[0], self.args[1], self.args[2])
-        elif self.type == 5:
-            score = self.func(list(x), self.args[0], self.args[1], self.args[2])
-        elif self.type == 6:
-            score = self.func(list(x), self.args[0], self.args[1], self.args[2], self.args[3])
-        out["F"] =  -score##
-        self.update_max_score(x, score)
+        if time_passed < self.total_time:
+            self.comps += 1
+            if self.type == 0:
+                score = self.func(list(x), self.args[0], self.args[1], fuzzing = self.args[2])
+            elif self.type == 1:
+                score = self.func(list(x), self.args[0], self.args[1], self.args[2], self.args[3], self.args[4])
+            elif self.type == 2:
+                score = self.func(list(x), self.args[0])
+            elif self.type == 3:
+                score = self.func(list(x), self.args[0], self.args[1], self.args[2], self.args[3])
+            elif self.type == 4:
+                score = self.func(list(x), self.args[0], self.args[1], self.args[2])
+            elif self.type == 5:
+                score = self.func(list(x), self.args[0], self.args[1], self.args[2])
+            elif self.type == 6:
+                score = self.func(list(x), self.args[0], self.args[1], self.args[2], self.args[3])
+            out["F"] =  -score##
+        else:
+            score = self.max_score
+            out["F"] = -self.max_score
+        self.update_max_score(time_passed, x, score)
         # if True:
         #     with open("patterns/UC2_"+self.args[0]+"_"+self.args[4] + "_" + str((len(list(x))-1)//5)+"_timesteps_delay_coeff", "a") as f:
         #         print(list(x), score, file = f)
         # else:
         #     out["F"] = -self.max_score##
     
-    def update_max_score(self, x, score):
+    def update_max_score(self, time_passed, x, score):
         if score > self.max_score:##
             self.max_score = score
             if self.type == 6:
@@ -55,6 +58,12 @@ class CCProblem(ElementwiseProblem):
                 if self.args[2] == 6:
                     with open("results/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay", "a") as f:
                         print(self.comps, self.max_score, list(x), file = f)
+                elif self.args[2] == 7:
+                    with open("results/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_parallel_5_eval_lcb", "a") as f:
+                        print(self.comps, time_passed, self.max_score, list(x), file = f)
+                elif self.args[2] == 8:
+                    with open("results/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_serial_1_eval", "a") as f:
+                        print(self.comps, time_passed, self.max_score, list(x), file = f)
                 elif self.args[2] == 5:
                     with open("results/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_2_links_with_delay", "a") as f:
                         print(self.comps, self.max_score, list(x), file = f)

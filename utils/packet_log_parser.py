@@ -40,14 +40,14 @@ def compute_convergence(times, bytes, delays):
     #     print(throughputs[i], avg_delays[i])
     return np.sum(throughputs), np.std(avg_delays) / np.mean(avg_delays)
 
-def parse(ref_port, tar_port):
+def parse(ref_port, tar_port, folder = "packet-logs/"):
     ref_packet_sizes_in_bytes = []
     ref_times = []
     ref_packet_delays = []
     tar_packet_sizes_in_bytes = []
     tar_times = []
     tar_packet_delays = []
-    with open(parent_folder + "packet-logs/packet-log-output-uplink") as f:
+    with open(parent_folder + folder + "packet-log-output-uplink") as f:
         lines = f.readlines()[:-1]
         for line in lines:
             line = line.split('\t')

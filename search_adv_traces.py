@@ -95,7 +95,8 @@ if __name__ == "__main__":
         if args.kernel == "6":
             os.system("mptcpize run iperf -s &")
         elif args.kernel == "5":
-            os.system("iperf -s &")
+            # os.system("iperf -s &")
+            pass
         if args.alg == 0: #Random
             randomGenerator = RandomGeneration(args.trace_length, args.l_bounds, args.u_bounds, args.seed, evaluate_mptcp, args.type, args.ref, args.n_eval, args.mptcp_type, args.kernel, args.tar)
             trace, score = randomGenerator.run(args.total_time)
@@ -104,14 +105,14 @@ if __name__ == "__main__":
         elif args.alg == 1: #GA
             start_time = time.perf_counter()
             # initialize the thread pool and create the runner
-            n_proccess = args.n_processes
-            pool = multiprocessing.Pool(n_proccess)
-            runner = StarmapParallelization(pool.starmap)
-            problem = CCProblem(args.trace_length, args.l_bounds, args.u_bounds, evaluate_mptcp, args.seed, start_time, args.total_time, args.type, args.ref, args.n_eval, args.mptcp_type, args.kernel, args.tar, elementwise_runner = runner)
+            # n_proccess = args.n_processes
+            # pool = multiprocessing.Pool(n_proccess)
+            # runner = StarmapParallelization(pool.starmap)
+            problem = CCProblem(args.trace_length, args.l_bounds, args.u_bounds, evaluate_mptcp, args.seed, start_time, args.total_time, args.type, args.ref, args.n_eval, args.mptcp_type, args.kernel, args.tar)
             ga = AdvNetGA(problem, args.pop_size, args.seed, args.n_iter)
             result = ga.run()
-            pool.close()  # Prevents new tasks from being submitted
-            pool.join()   # Waits for all workers to finish
+            # pool.close()  # Prevents new tasks from being submitted
+            # pool.join()   # Waits for all workers to finish
             # with open("UC2_SPTCP_Linux_Kernel_with_delay_coeff", "a") as f:
             #     print(args.ref, "vs", args.tar, (args.trace_length - 1) // 5, "timesteps", -result.F[0], result.X, time.perf_counter() - start_time, file = f)
             problem.save()
