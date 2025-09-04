@@ -2,7 +2,7 @@ def extract_queue_length(trace):
     return trace[-1], trace[:-1]
 
 def split_trace(trace, mptcp_type = -1):
-    if mptcp_type != 6:
+    if mptcp_type != 6 and mptcp_type != 7 and mptcp_type != 8:
         queue_length, trace = extract_queue_length(trace)
         len_trace = len(trace)
         
@@ -14,7 +14,7 @@ def split_trace(trace, mptcp_type = -1):
         durations = trace[4 * (len_trace // 5):]
 
         return bandwidths_1, latencies_1, durations, bandwidths_2, latencies_2, queue_length
-    elif mptcp_type == 6:
+    elif mptcp_type == 6 or mptcp_type == 7 or mptcp_type == 8:
         queue_length, trace = extract_queue_length(trace)
         len_trace = len(trace)
         
