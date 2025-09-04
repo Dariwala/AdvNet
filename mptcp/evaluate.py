@@ -9,7 +9,10 @@ import numpy as np
 import os
 import shutil
 from single_cc.evaluate import run_iperf_client_parallel as run_iperf_client_single_cc, read_packet_log_output_uplink
+from single_cc.evaluate import run_iperf_client
 from mptcp.convert import convert
+import multiprocessing
+from NoiseHandler.noisehandler import NoiseHandler
 
 def read_packet_log_output_uplinks():
     tot_delay = 0.0
@@ -146,7 +149,7 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, log = False, lock = N
 
     bw_file_1 = create_bandwidth_trace(bandwidths_1, durations_1)
     lt_file_1 = create_delay_trace(latencies_1, durations_1)
-    if mptcp_type != 6:
+    if mptcp_type != 6 and mptcp_type != 7 and mptcp_type != 8:
         bw_file_2 = create_bandwidth_trace(bandwidths_2, durations_2)
         lt_file_2 = create_delay_trace(latencies_2, durations_2)
 
@@ -219,22 +222,105 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, log = False, lock = N
         throughput_sptcp_tar_max = -1.0
         # delay_sptcp_ref_min = 100000
         # delay_sptcp_tar_min = 100000
-
         for _ in range(n_evals):
             _, _, folder = run_iperf_client_single_cc("100.64.0.1", sum(durations_1), tar, bw_file_1, lt_file_1, queue_length, lock, core_number)
-            avg_delay_sptcp_tar, throughput_sptcp_tar, duration = read_packet_log_output_uplink(folder)
+            avg_delay, throughput_sptcp_tar, duration = read_packet_log_output_uplink(folder)
             if throughput_sptcp_tar > throughput_sptcp_tar_max:
                 throughput_sptcp_tar_max = throughput_sptcp_tar
+                avg_delay_sptcp_tar = avg_delay
                 os.system("sleep 1;cp "+parent_folder+"packet-logs/uplink "+parent_folder+"/packet-logs/tar_uplink")
                 os.system("cp "+parent_folder+"packet-logs/packet-log-output-uplink "+parent_folder+"/packet-logs/tar_packet-log-output-uplink")
             shutil.rmtree(parent_folder + folder)
         for _ in range(n_evals):
             _, _, folder = run_iperf_client_single_cc("100.64.0.1", sum(durations_1), ref, bw_file_1, lt_file_1, queue_length, lock, core_number)
-            avg_delay_sptcp_ref, throughput_sptcp_ref, duration = read_packet_log_output_uplink(folder)
+            avg_delay, throughput_sptcp_ref, duration = read_packet_log_output_uplink(folder)
             if throughput_sptcp_ref > throughput_sptcp_ref_max:
                 throughput_sptcp_ref_max = throughput_sptcp_ref
+                avg_delay_sptcp_ref = avg_delay
             shutil.rmtree(parent_folder + folder)
         logs.append([throughput_sptcp_ref_max, throughput_sptcp_tar_max, avg_delay_sptcp_ref, avg_delay_sptcp_tar])
+    elif mptcp_type == 7:
+        while True:
+            typeErrorHappened = False
+            with multiprocessing.Manager() as manager:
+                lock = manager.Lock()
+                core_number = manager.Value('i', 0)  # 'i' for int
+                throughputs_ref = []
+                delays_ref = []
+                throughputs_tar = []
+                delays_tar = []
+                param_list = [("100.64.0.1", sum(durations_1), ref, bw_file_1, lt_file_1, queue_length, lock, core_number) for _ in range(n_evals)]
+
+                with multiprocessing.Pool(processes=n_evals) as pool:
+                    perf_logs = pool.starmap(run_iperf_client_single_cc, param_list)
+                for _, _, folder in perf_logs:
+                    try:
+                        delay, throughput, duration = read_packet_log_output_uplink(folder)
+                        delays_ref.append(delay)
+                        throughputs_ref.append(throughput)
+                        shutil.rmtree(parent_folder + folder)
+                    except TypeError:
+                        typeErrorHappened = True
+                if typeErrorHappened:
+                    continue
+                
+                param_list = [("100.64.0.1", sum(durations_1), tar, bw_file_1, lt_file_1, queue_length, lock, core_number) for _ in range(n_evals)]
+
+                with multiprocessing.Pool(processes=n_evals) as pool:
+                    perf_logs = pool.starmap(run_iperf_client_single_cc, param_list)
+                for _, _, folder in perf_logs:
+                    try:
+                        delay, throughput, duration = read_packet_log_output_uplink(folder)
+                        delays_tar.append(delay)
+                        throughputs_tar.append(throughput)
+                        shutil.rmtree(parent_folder + folder)
+                    except TypeError:
+                        typeErrorHappened = True
+                if typeErrorHappened:
+                    continue
+                break
+        scores = []
+        for i, _ in enumerate(throughputs_ref):
+            throughput_ref = throughputs_ref[i]
+            throughput_tar = throughputs_tar[i]
+            delay_ref = delays_ref[i]
+            delay_tar = delays_tar[i]
+            scores.append((throughput_ref - throughput_tar) / (throughput_ref * 2) + (delay_tar-delay_ref) / (delay_tar * 2))
+        noiseHandler = NoiseHandler().lcb
+        score = noiseHandler(scores)
+        logs.append([throughput_ref, throughput_tar, delay_ref, delay_tar])
+    elif mptcp_type == 8:
+        throughput_sptcp_ref_avg = -1.0
+        throughput_sptcp_tar_avg = -1.0
+        throughputs_ref = []
+        throughputs_tar = []
+        delays_ref = []
+        delays_tar = []
+        # delay_sptcp_ref_min = 100000
+        # delay_sptcp_tar_min = 100000
+        for _ in range(n_evals):
+            _, _, folder = run_iperf_client_single_cc("100.64.0.1", sum(durations_1), tar, bw_file_1, lt_file_1, queue_length)
+            avg_delay, throughput_sptcp_tar, duration = read_packet_log_output_uplink(folder)
+            throughputs_tar.append(throughput_sptcp_tar)
+            delays_tar.append(avg_delay)
+            os.system("sleep 1;cp "+parent_folder+"packet-logs/uplink "+parent_folder+"/packet-logs/tar_uplink")
+            os.system("cp "+parent_folder+"packet-logs/packet-log-output-uplink "+parent_folder+"/packet-logs/tar_packet-log-output-uplink")
+            shutil.rmtree(parent_folder + folder)
+        for _ in range(n_evals):
+            _, _, folder = run_iperf_client_single_cc("100.64.0.1", sum(durations_1), ref, bw_file_1, lt_file_1, queue_length)
+            avg_delay, throughput_sptcp_ref, duration = read_packet_log_output_uplink(folder)
+            throughputs_ref.append(throughput_sptcp_ref)
+            delays_ref.append(avg_delay)
+            shutil.rmtree(parent_folder + folder)
+        
+        noiseHandler = NoiseHandler().mean
+        throughput_sptcp_ref_avg = noiseHandler(throughputs_ref)
+        throughput_sptcp_tar_avg = noiseHandler(throughputs_tar)
+        delay_sptcp_ref_avg = noiseHandler(delays_ref)
+        delay_sptcp_tar_avg = noiseHandler(delays_tar)
+
+        logs.append([throughput_sptcp_ref_avg, throughput_sptcp_tar_avg, delay_sptcp_ref_avg, delay_sptcp_tar_avg])
+    # os.system("rm traces/"+bw_file_1+" traces/"+lt_file_1)
     if log:
         return logs
     elif mptcp_type == 1:
@@ -245,6 +331,14 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, log = False, lock = N
     elif mptcp_type == 6:
         # return (throughput_sptcp_ref_max - throughput_sptcp_tar_max) / throughput_sptcp_ref_max
         score = (throughput_sptcp_ref_max - throughput_sptcp_tar_max) / (throughput_sptcp_ref_max * 2) + (avg_delay_sptcp_tar-avg_delay_sptcp_ref) / (avg_delay_sptcp_tar * 2)
+        return score
+    elif mptcp_type == 7:
+        # score = (throughput_ref - throughput_tar) / (throughput_ref * 2) + (delay_tar-delay_ref) / (delay_tar * 2)
+        # print(score)
+        return score
+    elif mptcp_type == 8:
+        score = (throughput_sptcp_ref_avg - throughput_sptcp_tar_avg) / (throughput_sptcp_ref_avg * 2) + (delay_sptcp_tar_avg - delay_sptcp_ref_avg) / (delay_sptcp_tar_avg * 2)
+        print(score)
         return score
     else:
         # print("HHH", throughput_mptcp_single_link_max, throughput_mptcp_max)
