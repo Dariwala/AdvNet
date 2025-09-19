@@ -105,7 +105,7 @@ def run_iperf_client(server_ip, duration, alg, bw_file, lt_file, queue_length = 
     tot_bytes, duration = ord(alg[0]), ord(alg[0])
     return tot_bytes * 8 * 1000 / (duration * 1024 * 1024), duration, folder
 
-def run_iperf_client_parallel(server_ip, duration, alg, bw_file, lt_file, queue_length = 860, lock=None, core = 0):
+def run_iperf_client_parallel(server_ip, duration, alg, bw_file, lt_file, queue_length = 860, lock=None, core = 0, folder = None):
     # Run iperf client and capture output
     # while True:
     #     result = subprocess.run(['iperf', '-c', server_ip, '-t', str(duration / 1000), '-Z', alg], stdout=subprocess.PIPE, text=True)
@@ -120,8 +120,9 @@ def run_iperf_client_parallel(server_ip, duration, alg, bw_file, lt_file, queue_
     # os.system("taskset -c 0 iperf -s &")
     sleep(1)
     # os.system("mm-delay-link-rrc 10 "+ parent_folder +"AdvNet/traces/"+lt_file+" "+ parent_folder +"AdvNet/traces/"+bw_file+" "+ parent_folder +"AdvNet/traces/"+bw_file+" "+ parent_folder +"packet-logs/ --uplink-log="+ parent_folder +"packet-logs/uplink --downlink-log="+ parent_folder +"packet-logs/downlink --uplink-queue=droptail --uplink-queue-args=packets="+ str(queue_length) +" sudo iperf -c " + server_ip + " -Z " + alg + " -t " + str(duration / 1000))
-    folder = f"{uuid.uuid4().hex}/"
-    os.makedirs(parent_folder + folder)
+    if folder is None:
+        folder = f"{uuid.uuid4().hex}/"
+        os.makedirs(parent_folder + folder)
     shell = subprocess.Popen("/bin/bash",stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,bufsize=1)
     if lock is not None:
         lock.acquire()
@@ -144,14 +145,18 @@ def run_iperf_client_parallel(server_ip, duration, alg, bw_file, lt_file, queue_
     server_port = str(int(egress_addr.split('.')[-1]) + 5000)
     # os.system("sudo kill -9 $(sudo lsof -t -i :"+server_port+")")
     if lock is not None:
-        core.value = (core_number + 3) % os.cpu_count()
+        core.value = (core_number + 3) % (os.cpu_count()-os.cpu_count()%3)
         lock.release()
     os.system("sudo kill -9 $(sudo lsof -t -i :"+server_port+");sleep 0.5;taskset -c "+str(core_number)+" iperf -s -p " + server_port + " &")
     command2 = "taskset -c "+str(core_number + 1)+" sudo iperf -c " + egress_addr + " -p "+server_port+" -Z " + alg + " -t " + str(duration / 1000)
+    print(command2)
     _ = run_command(shell, command2, False)
     _ = run_command(shell, "exit", False)
     # shell.stdin.close()  # Close input stream when done
-    stdout, stderr = shell.communicate(timeout=10)  # Final read with timeout
+    try:
+        stdout, stderr = shell.communicate(timeout=10)  # Final read with timeout
+    except subprocess.TimeoutExpired:
+        return 0, 0, folder
     print(stdout, stderr)
     sleep(1)
     # tot_bytes, duration = read_uplink(folder)

@@ -148,6 +148,7 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, log = False, lock = N
         bandwidths_1, latencies_1, durations_1, bandwidths_2, latencies_2, durations_2, queue_length = split_trace_simplify(trace, index)
 
     bw_file_1 = create_bandwidth_trace(bandwidths_1, durations_1)
+    print(latencies_1, durations_1)
     lt_file_1 = create_delay_trace(latencies_1, durations_1)
     if mptcp_type != 6 and mptcp_type != 7 and mptcp_type != 8:
         bw_file_2 = create_bandwidth_trace(bandwidths_2, durations_2)
@@ -303,8 +304,8 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, log = False, lock = N
             avg_delay, throughput_sptcp_tar, duration = read_packet_log_output_uplink(folder)
             throughputs_tar.append(throughput_sptcp_tar)
             delays_tar.append(avg_delay)
-            os.system("sleep 1;cp "+parent_folder+"packet-logs/uplink "+parent_folder+"/packet-logs/tar_uplink")
-            os.system("cp "+parent_folder+"packet-logs/packet-log-output-uplink "+parent_folder+"/packet-logs/tar_packet-log-output-uplink")
+            # os.system("sleep 1;cp "+parent_folder+"packet-logs/uplink "+parent_folder+"/packet-logs/tar_uplink")
+            # os.system("cp "+parent_folder+"packet-logs/packet-log-output-uplink "+parent_folder+"/packet-logs/tar_packet-log-output-uplink")
             shutil.rmtree(parent_folder + folder)
         for _ in range(n_evals):
             _, _, folder = run_iperf_client_single_cc("100.64.0.1", sum(durations_1), ref, bw_file_1, lt_file_1, queue_length)
@@ -343,3 +344,39 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, log = False, lock = N
     else:
         # print("HHH", throughput_mptcp_single_link_max, throughput_mptcp_max)
         return np.median(results)
+
+def rl_evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, folders, log = False, lock = None, core_number = 0, simplify = False, index = -1):
+    if not simplify:
+        trace = convert(trace, mptcp_type)
+        bandwidths_1, latencies_1, durations, bandwidths_2, latencies_2, queue_length = split_trace(trace, mptcp_type)
+        durations_1 = durations
+        durations_2 = durations
+        if mptcp_type == 4:
+            tot_size = durations[0]
+            durations = [1000]
+    else:
+        print(trace, index)
+        bandwidths_1, latencies_1, durations_1, bandwidths_2, latencies_2, durations_2, queue_length = split_trace_simplify(trace, index)
+
+    bw_file_1 = create_bandwidth_trace(bandwidths_1, durations_1)
+    print(latencies_1, durations_1)
+    lt_file_1 = create_delay_trace(latencies_1, durations_1)
+    if mptcp_type != 6 and mptcp_type != 7 and mptcp_type != 8:
+        bw_file_2 = create_bandwidth_trace(bandwidths_2, durations_2)
+        lt_file_2 = create_delay_trace(latencies_2, durations_2)
+
+    results = []
+    logs = []
+
+    if mptcp_type == 7:
+        with multiprocessing.Manager() as manager:
+            lock = manager.Lock()
+            core_number = manager.Value('i', 0)  # 'i' for int
+            throughputs_ref = []
+            delays_ref = []
+            throughputs_tar = []
+            delays_tar = []
+            param_list = [("100.64.0.1", sum(durations_1), ref if i%2==0 else tar, bw_file_1, lt_file_1, queue_length, lock, core_number, folders[i]) for i in range(2 * n_evals)]
+
+            with multiprocessing.Pool(processes=2 * n_evals) as pool:
+                perf_logs = pool.starmap(run_iperf_client_single_cc, param_list)

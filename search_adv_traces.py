@@ -3,6 +3,7 @@ import multiprocessing
 from single_cc.evaluate import evaluate
 from GA.problem import CCProblem
 from mptcp.evaluate import evaluate as evaluate_mptcp
+from mptcp.evaluate import rl_evaluate as evaluate_mptcp_rl
 from dchannel.evaluate import evaluate as evaluate_dchannel
 from picoquic.evaluate import evaluate as evaluate_picoquic
 from multiflow.single_cc import evaluate as evaluate_multiflow_single_cc
@@ -29,6 +30,7 @@ import time
 # import supersuit as ss
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import DummyVecEnv
+import logging
 # from pettingzoo.utils import parallel_to_aec
 # from pettingzoo.utils.wrappers import BaseParallelWrapper
 
@@ -42,7 +44,7 @@ if __name__ == "__main__":
     parser.add_argument('--mptcp_type', type=int, default=2, help='1 for mptcp vs tcp, 2 for mptcp vs baseline, 3 for mptcp one vs two links')
     parser.add_argument('--dchannel_exp_type', type=int, default=1, help='1 for all-hb vs pkt-state')
     parser.add_argument('--picoquic_exp_type', type=int, default=1)
-    parser.add_argument('--kernel', type=str, default=6, help='5/6 for kernel version 5/6.4.x')
+    parser.add_argument('--kernel', type=str, default=5, help='5/6 for kernel version 5/6.4.x')
     parser.add_argument('--alg', type=int, default=0, help="0 for random generation, 1 for GA, 2 for BO")
     parser.add_argument('--trace_length', type=int, default=3)
     parser.add_argument('--seed', type=int, default=10)
@@ -56,7 +58,14 @@ if __name__ == "__main__":
     parser.add_argument('--total_time', type=float, default=5, help='Total time to run the emulation')
     parser.add_argument('--n_processes', type=int, default=50, help='How many processes to spawn to parallelize')
     parser.add_argument('--fuzzing', action='store_true', help='Whether to enable link fuzzing of cc-fuzz or not')
+    parser.add_argument('--rl_steps', type=int, help='Number of steps in an episode in RL', default=2)
+    parser.add_argument('--history_len', type=int, help='Number of previous steps to consider for observation in RL', default=1)
     args = parser.parse_args()
+
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+    )
 
     if args.type == 0: #Single CC
         # server_process = subprocess.Popen(['iperf', '-s'], stdout=subprocess.PIPE, text=True)
@@ -180,7 +189,7 @@ if __name__ == "__main__":
             #     stop={"training_iteration": args.n_iter},  # Stop after 50 iterations
             #     local_dir="./results",  # Save results to this directory
             # )
-            gym_env = RLlibEnv(args.l_bounds, [args.u_bounds[i] - args.l_bounds[i] + 1 for i in range(args.trace_length)], args.n_eval, evaluate_mptcp, args.type, args.ref, args.tar, args.mptcp_type, args.kernel)
+            gym_env = RLlibEnv(args.l_bounds, [args.u_bounds[i] - args.l_bounds[i] + 1 for i in range(args.trace_length)], args.n_eval, evaluate_mptcp_rl, args.type, args.ref, args.tar, args.mptcp_type, args.kernel, args.rl_steps, args.history_len, args.seed)
 
             # Train using Stable-Baselines3
             model = PPO("MlpPolicy", gym_env, verbose=1, n_steps = 2, batch_size = 2, learning_rate = 1e-4)
