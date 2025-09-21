@@ -11,6 +11,8 @@ class NoiseHandler:
         trimmed_values = values[trim_len:-trim_len]
         return sum(trimmed_values) / len(trimmed_values) 
     def lcb(self, values, lam=2):
+        if len(values) == 1:
+            return values[0]
         samples = np.array(values, dtype=float)
         mean = np.mean(samples)
         std = np.std(samples, ddof=1)  # sample standard deviation

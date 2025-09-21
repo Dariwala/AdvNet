@@ -138,7 +138,6 @@ def run_iperf_client_parallel(server_ip, duration, alg, bw_file, lt_file, queue_
     # print(command1)
     commands = f"""
             {command1}
-            {'sleep 0.5'}
         """
 
     egress_addr = run_command(shell, commands, True)
@@ -170,7 +169,7 @@ def run_command(shell, command, egress_needed):
     shell.stdin.flush()  # Ensure command is executed
     egress_addr = None
     # output = []
-    sleep(0.2)
+    sleep(0.1)
     while egress_needed:
         line = shell.stdout.readline()
         if "egress_addr:" in line:  # Stop reading once we find ingress_addr

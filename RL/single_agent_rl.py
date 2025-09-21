@@ -42,6 +42,7 @@ class RLlibEnv(gym.Env):
             self.prev_tot_delay = [0 for _ in range(2 * self.n_evals)]
             self.prev_tot_bytes = [0 for _ in range(2 * self.n_evals)]
             self.prev_no_packets = [0 for _ in range(2 * self.n_evals)]
+            self.prev_timestamps = [0 for _ in range(2 * self.n_evals)]
 
             self.history_length = self.args[6]
             self.logger.info(f"Time variant portion: {self.l_bound} {self.bound_range}")
@@ -51,7 +52,6 @@ class RLlibEnv(gym.Env):
         self.generator = random.Random(self.args[7])
 
         self.folders = []
-        self.lock = threading.Lock()
         self.results = {}
         self.sleep_times = []
         self.trace = []
@@ -74,11 +74,12 @@ class RLlibEnv(gym.Env):
         info = {}  # Return any additional info (can be empty)
         self.results = {}
         self.current_step_no = 0
-        self.sleep_times = []
+        # self.sleep_times = []
         self.trace = []
         self.prev_tot_delay = [0 for _ in range(2 * self.n_evals)]
         self.prev_tot_bytes = [0 for _ in range(2 * self.n_evals)]
         self.prev_no_packets = [0 for _ in range(2 * self.n_evals)]
+        self.prev_timestamps = [0 for _ in range(2 * self.n_evals)]
         os.system("sudo pkill -9 mm")
         self.logger.debug("Reset method initialized everything")
         self.delete_and_recreate_folders()
@@ -98,58 +99,81 @@ class RLlibEnv(gym.Env):
             else:
                 sleep(0.05)
     
-    def handle_one_flow(self, flow_number):
-        self.wait_until_start_of_flow(self.folders[flow_number])
-        self.logger.debug(f"Flow {flow_number + 1} started sending packets")
-        for i, sleep_time in enumerate(self.sleep_times):
-            sleep(sleep_time / 1000)
-            self.logger.debug(f"Flow {flow_number + 1} slept for {sleep_time} ms")
+    def read_stat(self, flow_number):
+        folder = self.folders[flow_number]
 
-            with open(parent_folder + self.folders[flow_number] + "stats_uplink.txt") as f:
-                line = f.readline()[:-1].split()
+        if self.current_step_no == 0:
+            while True:
+                if os.path.exists(parent_folder + folder + "stats-uplink.txt") == False:
+                    sleep(0.05)
+                else:
+                    break
+
+        while True:
+            with open(parent_folder + folder + "stats-uplink.txt") as f:
+                lines = list(f)
+                if len(lines) < self.current_step_no + 1:
+                    sleep(0.05)
+                    continue
+                line = lines[self.current_step_no][:-1].split('\t')
+
+                curr_time = int(line[0])
                 tot_bytes_sent = int(line[1])
                 tot_packets_sent = int(line[2])
                 tot_latency = int(line[3])
                 queue_occupancy = float(line[4])
-                self.logger.debug(f"Flow {flow_number + 1} statistics after timestep {i+1}: {tot_bytes_sent}, {tot_packets_sent} {tot_latency} {queue_occupancy}")
-            with self.lock:
-                self.results[str(flow_number)+"_"+str(i)]=[tot_bytes_sent, tot_packets_sent, tot_latency, queue_occupancy]
+                self.logger.debug(f"Flow {flow_number + 1} statistics after timestep {self.current_step_no + 1}: {curr_time} {tot_bytes_sent}, {tot_packets_sent} {tot_latency} {queue_occupancy}")
+                break
+
+        self.results[str(flow_number)+"_"+str(self.current_step_no)]=[curr_time, tot_bytes_sent, tot_packets_sent, tot_latency, queue_occupancy]
+
+    
+    # def handle_one_flow(self, flow_number):
+    #     self.wait_until_start_of_flow(self.folders[flow_number])
+    #     self.logger.debug(f"Flow {flow_number + 1} started sending packets")
+    #     for i, sleep_time in enumerate(self.sleep_times):
+    #         sleep(sleep_time / 1000)
+    #         self.logger.debug(f"Flow {flow_number + 1} slept for {sleep_time} ms")
+
+    #         with open(parent_folder + self.folders[flow_number] + "stats_uplink.txt") as f:
+    #             line = f.readline()[:-1].split()
+    #             tot_bytes_sent = int(line[1])
+    #             tot_packets_sent = int(line[2])
+    #             tot_latency = int(line[3])
+    #             queue_occupancy = float(line[4])
+    #             self.logger.debug(f"Flow {flow_number + 1} statistics after timestep {i+1}: {tot_bytes_sent}, {tot_packets_sent} {tot_latency} {queue_occupancy}")
+    #         with self.lock:
+    #             self.results[str(flow_number)+"_"+str(i)]=[tot_bytes_sent, tot_packets_sent, tot_latency, queue_occupancy]
 
     def get_reward(self):
-        if self.current_step_no == 0:
-            for i in range(2 * self.n_evals):
-                self.wait_until_start_of_flow(self.folders[i])
-        sleep(self.sleep_times[self.current_step_no] / 1000)
-        self.logger.debug(f"Main thread woke up from sleep to compute reward for timestep {self.current_step_no + 1}")
+        for i in range(2 * self.n_evals):
+            self.read_stat(i)
+        # sleep(self.sleep_times[self.current_step_no] / 1000)
+        self.logger.debug(f"Main thread collected stats for timestep {self.current_step_no + 1}")
         scores = []
         throughputs = []
         delays = []
         occupancies_ref = []
         occupancies_tar = []
         for i in range(2 * self.n_evals):
-            while True:
-                with self.lock:
-                    if str(i)+"_"+str(self.current_step_no) not in self.results:
-                        pass
-                    else:
-                        tot_bytes_sent, tot_packets_sent, tot_latency, queue_occupancy = self.results[str(i)+"_"+str(self.current_step_no)]
-                        throughput = (tot_bytes_sent - self.prev_tot_bytes[i]) * 0.008 / self.sleep_times[self.current_step_no]
-                        throughputs.append(throughput)
-                        self.prev_tot_bytes[i] = tot_bytes_sent
-                        try:
-                            delay = (tot_latency - self.prev_tot_delay[i]) / (tot_packets_sent - self.prev_no_packets[i])
-                        except ZeroDivisionError:
-                            delay = 0
+            curr_time, tot_bytes_sent, tot_packets_sent, tot_latency, queue_occupancy = self.results[str(i)+"_"+str(self.current_step_no)]
+            throughput = (tot_bytes_sent - self.prev_tot_bytes[i]) * 0.008 / (curr_time - self.prev_timestamps[i])
+            throughputs.append(throughput)
+            self.prev_tot_bytes[i] = tot_bytes_sent
+            self.prev_timestamps[i] = curr_time
+            try:
+                delay = (tot_latency - self.prev_tot_delay[i]) / (tot_packets_sent - self.prev_no_packets[i])
+            except ZeroDivisionError:
+                delay = 0
+                self.logger.debug("Delay is 0")
 
-                        delays.append(delay)
-                        self.prev_tot_delay[i] = tot_latency
-                        self.prev_no_packets[i] = tot_packets_sent
-                        if i%2 == 0:
-                            occupancies_ref.append(queue_occupancy)
-                        else:
-                            occupancies_tar.append(queue_occupancy)
-                        break
-                sleep(0.05)
+            delays.append(delay)
+            self.prev_tot_delay[i] = tot_latency
+            self.prev_no_packets[i] = tot_packets_sent
+            if i%2 == 0:
+                occupancies_ref.append(queue_occupancy)
+            else:
+                occupancies_tar.append(queue_occupancy)
         i = 0
         sum_throughput_ref = sum_throughput_tar = sum_delay_ref = sum_delay_tar = 0
         while i < len(throughputs):
@@ -187,10 +211,10 @@ class RLlibEnv(gym.Env):
             delay_uplink_path = parent_folder + self.folders[i] + "delay_trace_pipe-uplink"
             delay_downlink_path = parent_folder + self.folders[i] + "delay_trace_pipe-downlink"
 
-            pdo_data = [bandwidth * 1000, self.sleep_times[self.current_step_no]]
-            latency_data = [self.sleep_times[self.current_step_no], latency * 5]
+            pdo_data = [bandwidth * 1000, 1]
+            latency_data = [1, latency * 5]
 
-            self.logger.debug(f"Main thread writing action to {self.folders[i]} with pdo data {pdo_data} and latency data {latency_data}")
+            self.logger.debug(f"Main thread writing action to {self.folders[i]}")
 
             with open(pdo_uplink_path, "wb") as fifo:
                 payload = struct.pack("Q", len(pdo_data)) + struct.pack(f"{len(pdo_data)}Q", *pdo_data)
@@ -223,12 +247,12 @@ class RLlibEnv(gym.Env):
                 self.logger.debug(f"Initial trace from action: {trace}")
                 self.trace = trace
 
-                self.sleep_times = self.compute_sleep_time(trace)
-                self.logger.debug(f"Sleep times: {self.sleep_times}")
-                for i in range(self.n_evals * 2):
-                    t = threading.Thread(target = self.handle_one_flow, args=(i,))
-                    t.start()
-                    self.logger.debug(f"Thread for handling flow {i+1} started")
+                # self.sleep_times = self.compute_sleep_time(trace)
+                # self.logger.debug(f"Sleep times: {self.sleep_times}")
+                # for i in range(self.n_evals * 2):
+                #     t = threading.Thread(target = self.handle_one_flow, args=(i,))
+                #     t.start()
+                #     self.logger.debug(f"Thread for handling flow {i+1} started")
                 
                 t = threading.Thread(target = self.eval, args=(trace, self.args[1], self.n_evals, self.args[3], self.args[4], self.args[2], self.folders))  # Calculate reward
                 t.start()
@@ -250,11 +274,11 @@ class RLlibEnv(gym.Env):
             self.log()
         return self.state, reward, done, truncated, info
     
-    def compute_sleep_time(self, trace):
-        if self.args[0] == 1:
-            converted_trace = mptcp_convert(trace, self.args[3])
-            sleep_times = converted_trace[-self.steps_in_an_episode-1:-1]
-        return sleep_times
+    # def compute_sleep_time(self, trace):
+    #     if self.args[0] == 1:
+    #         converted_trace = mptcp_convert(trace, self.args[3])
+    #         sleep_times = converted_trace[-self.steps_in_an_episode-1:-1]
+    #     return sleep_times
 
 
     def log(self):

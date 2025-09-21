@@ -1,6 +1,6 @@
 from mptcp.split_trace import split_trace, split_trace_simplify
 from utils.generate_bandwidth_trace import create_trace_non_pdo as create_bandwidth_trace
-from utils.generate_delay_trace import create_trace as create_delay_trace
+from utils.generate_delay_trace import create_trace as create_delay_trace, create_trace_rl as create_delay_trace_rl
 from utils.scale_up import scale_up
 from utils.read_uplink import read_uplink, read_uplink_mp
 import subprocess
@@ -360,7 +360,7 @@ def rl_evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, folders, log = Fal
 
     bw_file_1 = create_bandwidth_trace(bandwidths_1, durations_1)
     print(latencies_1, durations_1)
-    lt_file_1 = create_delay_trace(latencies_1, durations_1)
+    lt_file_1 = create_delay_trace_rl(latencies_1, durations_1)
     if mptcp_type != 6 and mptcp_type != 7 and mptcp_type != 8:
         bw_file_2 = create_bandwidth_trace(bandwidths_2, durations_2)
         lt_file_2 = create_delay_trace(latencies_2, durations_2)
