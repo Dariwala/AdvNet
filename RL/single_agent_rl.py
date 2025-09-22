@@ -45,6 +45,7 @@ class RLlibEnv(gym.Env):
             self.prev_timestamps = [0 for _ in range(2 * self.n_evals)]
 
             self.history_length = self.args[6]
+            self.gamma = self.args[8]
             self.logger.info(f"Time variant portion: {self.l_bound} {self.bound_range}")
             self.logger.info(f"Time invariant portion: {self.time_invariant_l_bound} {self.time_invariant_bound_range}")
 
@@ -54,6 +55,8 @@ class RLlibEnv(gym.Env):
         self.folders = []
         self.results = {}
         self.trace = []
+        self.trace_reward = 0
+        self.evaluation_thread = None
 
         for i in range(2 * n_evals):
             folder = f"{uuid.uuid4().hex}"+"_"+str(i)+"/"
@@ -73,6 +76,10 @@ class RLlibEnv(gym.Env):
         info = {}  # Return any additional info (can be empty)
         self.results = {}
         self.current_step_no = 0
+        self.trace_reward = 0
+        if self.evaluation_thread is not None:
+            self.evaluation_thread.join()
+        self.evaluation_thread = None
         self.trace = []
         self.prev_tot_delay = [0 for _ in range(2 * self.n_evals)]
         self.prev_tot_bytes = [0 for _ in range(2 * self.n_evals)]
@@ -227,6 +234,7 @@ class RLlibEnv(gym.Env):
                 
                 t = threading.Thread(target = self.eval, args=(trace, self.args[1], self.n_evals, self.args[3], self.args[4], self.args[2], self.folders))  # Calculate reward
                 t.start()
+                self.evaluation_thread = t
                 self.logger.debug("Thread calling evaluate method started")
         else:
             self.take_action(self.l_bound[0] + action[0], self.l_bound[1] + action[1], self.l_bound[2] + action[2])
@@ -234,6 +242,7 @@ class RLlibEnv(gym.Env):
             self.trace[self.current_step_no + self.steps_in_an_episode] = self.l_bound[1] + action[1]
             self.trace[self.current_step_no + 2 * self.steps_in_an_episode] = self.l_bound[2] + action[2]
         reward = self.get_reward()
+        self.trace_reward += reward
             
         truncated = False  # Flag if episode is truncated
         info = {}  # Add any additional information here (can be empty)
@@ -247,17 +256,16 @@ class RLlibEnv(gym.Env):
         return self.state, reward, done, truncated, info
     
     def log(self):
-        self.logger.debug("Episode finished. Main thread computing score of the trace")
-        if self.args[0] == 1:
-            reward = mptcp_evaluate(self.trace, self.args[1], self.n_evals, self.args[3], self.args[4], self.args[2])
-        elif self.args[0] == 4:
-            reward = self.eval(self.trace, self.args[1], self.n_evals, self.args[2])
-        if reward > self.max_reward:
-            self.max_reward = reward
+        self.logger.debug("Episode finished. Main thread logging score of the trace")
+        # if self.args[0] == 1:
+        #     reward = mptcp_evaluate(self.trace, self.args[1], self.n_evals, self.args[3], self.args[4], self.args[2])
+        # elif self.args[0] == 4:
+        #     reward = self.eval(self.trace, self.args[1], self.n_evals, self.args[2])
+        if self.trace_reward > self.max_reward:
+            self.max_reward = self.trace_reward
             if self.args[0] == 1:#mptcp
-                with open("results/score_across_comparisons_SRL_"+self.args[1]+"_vs_"+self.args[2]+"_2_timesteps_with_delay_1_eval", "a") as f:
+                with open("results/score_across_comparisons_SRL_"+self.args[1]+"_vs_"+self.args[2]+"_"+str(self.steps_in_an_episode)+"_timesteps_with_delay_"+str(self.n_evals)+"_eval_"+str(self.history_length)+"_history_"+str(self.gamma)+"_gamma", "a") as f:
                     print(self.comp, self.max_reward, self.trace, file = f)
             elif self.args[0] == 4:#multi-flow
                 with open("results/score_across_comparisons_SRL_"+self.args[1]+"_vs_"+self.args[2]+"_2_timesteps_multiflow", "a") as f:
                     print(self.comp, self.max_reward, self.trace, file = f)
-        return reward

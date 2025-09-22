@@ -60,12 +60,16 @@ if __name__ == "__main__":
     parser.add_argument('--fuzzing', action='store_true', help='Whether to enable link fuzzing of cc-fuzz or not')
     parser.add_argument('--rl_steps', type=int, help='Number of steps in an episode in RL', default=2)
     parser.add_argument('--history_len', type=int, help='Number of previous steps to consider for observation in RL', default=1)
+    parser.add_argument('--gamma', type=float, help='Discount factor in RL', default=0.99)
     args = parser.parse_args()
 
     logging.basicConfig(
         level=logging.DEBUG,
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
     )
+
+    # Disable logging globally:
+    logging.disable(logging.CRITICAL)  # turns off all logs <= CRITICAL
 
     if args.type == 0: #Single CC
         # server_process = subprocess.Popen(['iperf', '-s'], stdout=subprocess.PIPE, text=True)
@@ -189,16 +193,16 @@ if __name__ == "__main__":
             #     stop={"training_iteration": args.n_iter},  # Stop after 50 iterations
             #     local_dir="./results",  # Save results to this directory
             # )
-            gym_env = RLlibEnv(args.l_bounds, [args.u_bounds[i] - args.l_bounds[i] + 1 for i in range(args.trace_length)], args.n_eval, evaluate_mptcp_rl, args.type, args.ref, args.tar, args.mptcp_type, args.kernel, args.rl_steps, args.history_len, args.seed)
+            gym_env = RLlibEnv(args.l_bounds, [args.u_bounds[i] - args.l_bounds[i] + 1 for i in range(args.trace_length)], args.n_eval, evaluate_mptcp_rl, args.type, args.ref, args.tar, args.mptcp_type, args.kernel, args.rl_steps, args.history_len, args.seed, args.gamma)
 
             # Train using Stable-Baselines3
-            model = PPO("MlpPolicy", gym_env, verbose=1, n_steps = 2, batch_size = 2, learning_rate = 1e-4)
+            model = PPO("MlpPolicy", gym_env, verbose=1, n_steps = 2, batch_size = 2, learning_rate = 1e-4, gamma=args.gamma)
 
             # Train the model
             model.learn(total_timesteps=args.n_iter)
 
             # Save the model
-            model.save(args.ref+"_"+args.tar+"_PPO")
+            model.save("RL/models/"+args.ref+"_vs_"+args.tar+"_"+str(args.rl_steps)+"_timesteps_with_delay_"+str(args.n_eval)+"_eval_"+str(args.history_len)+"_history_"+str(args.gamma)+"_gamma")
 
         # score = evaluate_mptcp([2 ,  5 , 68 , 17 , 30 ,363], args.ref, args.n_eval, args.mptcp_type, args.kernel, args.tar, True)
         # score = evaluate_mptcp([76, 106,  20,   5,  53,   8,   3,  16,  45,  40, 426], args.ref, args.n_eval, args.mptcp_type, args.kernel, args.tar, True)
