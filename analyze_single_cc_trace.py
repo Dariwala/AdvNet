@@ -5,6 +5,9 @@ from picoquic.evaluate import evaluate as evaluate_picoquic
 from multiflow.single_cc import evaluate as evaluate_multiflow_single_cc
 import os
 from config import parent_folder
+from stable_baselines3 import PPO
+from RL.single_agent_rl import RLlibEnv
+from mptcp.evaluate import rl_evaluate
 
 def get_start_time(file_1, file_2):
     with open(parent_folder + "packet-logs/"+file_1) as f:
@@ -64,9 +67,10 @@ if __name__ == "__main__":
     parser.add_argument('--multiprocessing', action='store_true', help='Whether it is multiprocessing or not')
     parser.add_argument('--picoquic', action='store_true', help='Whether it is picoquic or not')
     parser.add_argument('--multiflow', action='store_true', help='Whether it is multiflow or not')
+    parser.add_argument('--RL', action='store_true', help='Whether it is RL or not')
     args = parser.parse_args()
     #os.system("iperf -s &")
-    if not args.mptcp and not args.picoquic and not args.multiflow:
+    if not args.mptcp and not args.picoquic and not args.multiflow and not args.RL:
         with open("log", "w") as f:
             for _ in range(1):
                 # score = evaluate_picoquic(args.trace, 3, args.ref, args.tar, 1, True)
@@ -312,5 +316,18 @@ if __name__ == "__main__":
             print(x)
             print(ys_2)
     elif args.multiflow:
-        logs = evaluate_multiflow_single_cc(args.trace, args.ref, 1, args.tar, True)
+        logs = evaluate_multiflow_single_cc(args.trace, args.ref, 3, args.tar, True)
         print(logs)
+    elif args.RL:
+        model = PPO.load("RL/models/bbr_vs_cubic_2_timesteps_with_delay_1_eval_1_history_0.99_gamma")
+        gym_env = RLlibEnv([1, 1, 10, 10], [1200, 50, 41, 91], 1, rl_evaluate, 1, "bbr", "cubic", 7, "5", 2, 1, 10, 0.99)
+        obs, _ = gym_env.reset()   # get initial observation
+        done = False
+        # trace = []
+
+        while not done:
+            action, _states = model.predict(obs, deterministic=True)  # greedy action
+            print(action, "Ekhane")
+            obs, reward, done, truncated, info = gym_env.step(action)
+            print("iteration shesh")
+        print("Trace:", gym_env.trace)
