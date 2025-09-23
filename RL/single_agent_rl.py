@@ -13,6 +13,7 @@ import shutil
 import struct
 from mptcp.evaluate import evaluate as mptcp_evaluate
 import logging
+from collections import deque
 
 class RLlibEnv(gym.Env):
     def __init__(self, l_bound, bound_range, n_evals, evaluate, *args):
@@ -38,13 +39,13 @@ class RLlibEnv(gym.Env):
             self.l_bound = self.l_bound[:-1]
 
             # Observation space : avg. throughput, avg. latency, queue occupancy
-            self.observation_space = Box(low=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]), high=np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0]), shape=(6,), dtype=np.float64)
+            self.history_length = self.args[6]
+            self.observation_space = Box(low=np.tile(0.0, 6 * self.history_length), high=np.tile(1.0, 6 * self.history_length), shape=(6 * self.history_length,), dtype=np.float64)
             self.prev_tot_delay = [0 for _ in range(2 * self.n_evals)]
             self.prev_tot_bytes = [0 for _ in range(2 * self.n_evals)]
             self.prev_no_packets = [0 for _ in range(2 * self.n_evals)]
             self.prev_timestamps = [0 for _ in range(2 * self.n_evals)]
 
-            self.history_length = self.args[6]
             self.gamma = self.args[8]
             self.logger.info(f"Time variant portion: {self.l_bound} {self.bound_range}")
             self.logger.info(f"Time invariant portion: {self.time_invariant_l_bound} {self.time_invariant_bound_range}")
@@ -57,6 +58,7 @@ class RLlibEnv(gym.Env):
         self.trace = []
         self.trace_reward = 0
         self.evaluation_thread = None
+        self.obs = deque(maxlen=self.history_length)
 
         for i in range(2 * n_evals):
             folder = f"{uuid.uuid4().hex}"+"_"+str(i)+"/"
@@ -70,9 +72,20 @@ class RLlibEnv(gym.Env):
             shutil.rmtree(parent_folder + self.folders[i])
             sleep(0.05)
             os.makedirs(parent_folder + self.folders[i])
+    
+    def _get_obs(self):
+        self.obs.append(self.state)
+
+        # If not enough history yet, pad with zeros
+        while len(self.obs) < self.history_length:
+            self.obs.appendleft(np.zeros_like(self.state))
+
+        self.logger.debug(f"Current observation for RL: {np.concatenate(self.obs)}")
+        return np.concatenate(self.obs)
 
     def reset(self, *, seed=None, options=None):
         self.state = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])  # Initialize state
+        self.obs = deque(maxlen=self.history_length)
         info = {}  # Return any additional info (can be empty)
         self.results = {}
         self.current_step_no = 0
@@ -88,7 +101,7 @@ class RLlibEnv(gym.Env):
         os.system("sudo pkill -9 mm")
         self.logger.debug("Reset method initialized everything")
         self.delete_and_recreate_folders()
-        return self.state, info
+        return self._get_obs(), info
     
     def read_stat(self, flow_number):
         folder = self.folders[flow_number]
@@ -253,7 +266,7 @@ class RLlibEnv(gym.Env):
         if self.current_step_no == self.steps_in_an_episode:
             done = True
             self.log()
-        return self.state, reward, done, truncated, info
+        return self._get_obs(), reward, done, truncated, info
     
     def log(self):
         self.logger.debug("Episode finished. Main thread logging score of the trace")
