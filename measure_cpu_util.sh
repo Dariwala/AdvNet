@@ -1,7 +1,7 @@
 #!/bin/bash
 
 sudo ls
-N=1  # Number of runs
+N=10  # Number of runs
 declare -A total_cpu
 cores=(0 1 2)
 
@@ -17,7 +17,7 @@ for i in $(seq 1 $N); do
     (mpstat -P 0,1,2 1 > mpstat_output.txt) & MPSTAT_PID=$!
     
     # Run your experiment
-    python analyze_single_cc_trace.py --trace 1200 1 100 100 --ref=bbr --tar=cubic --mptcp --mptcp_type=6 --multiprocessing --n_processes=1
+    python analyze_single_cc_trace.py --trace 1200 1 100 100 --ref=bbr --tar=cubic --mptcp --mptcp_type=6 --multiprocessing --n_processes=2
     
     # Kill mpstat once experiment finishes
     kill $MPSTAT_PID

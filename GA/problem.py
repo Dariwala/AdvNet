@@ -16,10 +16,14 @@ class CCProblem(ElementwiseProblem):
         self.max_score_vs_time = []
         self.type = type
         self.comps = 0
+        # self.args = self.args[0:1] + (1,) + self.args[2:]
         super().__init__(n_var=trace_length, n_obj=1, n_ieq_constr=0, n_eq_constr = 0, xl=lower_bound, xu=upper_bound, **kwargs)
 
     def _evaluate(self, x, out, *args, **kwargs):
         time_passed = time.perf_counter() - self.start_time
+
+        # if time_passed > self.total_time * 0.5:
+        #     self.args = self.args[0:1] + (1,) + self.args[2:]
 
         if time_passed < self.total_time:
             self.comps += 1
@@ -59,10 +63,10 @@ class CCProblem(ElementwiseProblem):
                     with open("results/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay", "a") as f:
                         print(self.comps, self.max_score, list(x), file = f)
                 elif self.args[2] == 7:
-                    with open("results/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_parallel_5_eval_lcb", "a") as f:
+                    with open("results/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_parallel_7_eval_lcb_lam_3", "a") as f:
                         print(self.comps, time_passed, self.max_score, list(x), file = f)
                 elif self.args[2] == 8:
-                    with open("results/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_serial_1_eval", "a") as f:
+                    with open("results/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_serial_2_eval", "a") as f:
                         print(self.comps, time_passed, self.max_score, list(x), file = f)
                 elif self.args[2] == 5:
                     with open("results/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_2_links_with_delay", "a") as f:

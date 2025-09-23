@@ -288,7 +288,7 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, log = False, lock = N
             delay_tar = delays_tar[i]
             scores.append((throughput_ref - throughput_tar) / (throughput_ref * 2) + (delay_tar-delay_ref) / (delay_tar * 2))
         noiseHandler = NoiseHandler().lcb
-        score = noiseHandler(scores)
+        score = noiseHandler(scores, 3)
         logs.append([throughput_ref, throughput_tar, delay_ref, delay_tar])
     elif mptcp_type == 8:
         throughput_sptcp_ref_avg = -1.0
@@ -313,14 +313,16 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, log = False, lock = N
             throughputs_ref.append(throughput_sptcp_ref)
             delays_ref.append(avg_delay)
             shutil.rmtree(parent_folder + folder)
-        
+        for i, _ in enumerate(throughputs_ref):
+            throughput_ref = throughputs_ref[i]
+            throughput_tar = throughputs_tar[i]
+            delay_ref = delays_ref[i]
+            delay_tar = delays_tar[i]
+        scores = []
+        scores.append((throughput_ref - throughput_tar) / (throughput_ref * 2) + (delay_tar-delay_ref) / (delay_tar * 2))
         noiseHandler = NoiseHandler().mean
-        throughput_sptcp_ref_avg = noiseHandler(throughputs_ref)
-        throughput_sptcp_tar_avg = noiseHandler(throughputs_tar)
-        delay_sptcp_ref_avg = noiseHandler(delays_ref)
-        delay_sptcp_tar_avg = noiseHandler(delays_tar)
-
-        logs.append([throughput_sptcp_ref_avg, throughput_sptcp_tar_avg, delay_sptcp_ref_avg, delay_sptcp_tar_avg])
+        score = noiseHandler(scores)
+        logs.append([throughput_ref, throughput_tar, delay_ref, delay_tar])
     # os.system("rm traces/"+bw_file_1+" traces/"+lt_file_1)
     if log:
         return logs
@@ -338,8 +340,6 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, log = False, lock = N
         # print(score)
         return score
     elif mptcp_type == 8:
-        score = (throughput_sptcp_ref_avg - throughput_sptcp_tar_avg) / (throughput_sptcp_ref_avg * 2) + (delay_sptcp_tar_avg - delay_sptcp_ref_avg) / (delay_sptcp_tar_avg * 2)
-        print(score)
         return score
     else:
         # print("HHH", throughput_mptcp_single_link_max, throughput_mptcp_max)

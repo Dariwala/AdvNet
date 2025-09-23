@@ -104,17 +104,23 @@ if __name__ == "__main__":
                 core_number = manager.Value('i', 0)  # 'i' for int
                 res = []
                 for _ in range(1):
-                    param_list = [(args.trace, args.ref, 1, args.mptcp_type, "5", args.tar, True, lock, core_number) for _ in range(args.n_processes)]
+                    param_list = [(args.trace, args.ref, 1, args.mptcp_type, "5", args.tar, False, lock, core_number) for _ in range(args.n_processes)]
 
                     with multiprocessing.Pool(processes=args.n_processes) as pool:
                         scores = pool.starmap(evaluate_mptcp, param_list)
                     for score in scores:
                         res.append(score)
-            for r in res:
-                print(r[0][0], r[0][1], r[0][2], r[0][3], sep="\t")
+            # for r in res:
+                # print(r[0][0], r[0][1], r[0][2], r[0][3], sep="\t")
+                # print(r, sep="\t")
+            print(sum(res) / 10)
         else:
-            score = evaluate_mptcp(args.trace, args.ref, 1, args.mptcp_type, "5", args.tar, True)
-            print(score)
+            scores = []
+            for _ in range(5):
+                score = evaluate_mptcp(args.trace, args.ref, 1, args.mptcp_type, "5", args.tar, False)
+                print(score)
+                scores.append(score)
+            print(sum(scores) / 5)
             if args.mptcp_type == 1:
                 bandwidths_1 = get_continuous_throughput(parent_folder + "packet-logs/queue-service-log-uplink", get_start_time("queue-service-log-uplink", "queue-service-log-uplink"))
                 bandwidths_2 = get_continuous_throughput(parent_folder + "packet-logs-2/queue-service-log-uplink", get_start_time("queue-service-log-uplink", "queue-service-log-uplink"))
