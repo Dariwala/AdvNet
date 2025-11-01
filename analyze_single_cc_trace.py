@@ -61,6 +61,7 @@ if __name__ == "__main__":
     parser.add_argument('--tar', type=str, default="cubic", help='Reference algorithm')
     parser.add_argument('--mptcp_type', type=int)
     parser.add_argument('--n_processes', type=int)
+    parser.add_argument('--model', type=str, default="", help='RL model to load')
     # parser.add_argument('--uplink_file_name', type = str, help = "Uplink file name")
     parser.add_argument('--fuzzing', action='store_true', help='Whether to enable link fuzzing of cc-fuzz or not')
     parser.add_argument('--mptcp', action='store_true', help='Whether it is mptcp or not')
@@ -68,6 +69,7 @@ if __name__ == "__main__":
     parser.add_argument('--picoquic', action='store_true', help='Whether it is picoquic or not')
     parser.add_argument('--multiflow', action='store_true', help='Whether it is multiflow or not')
     parser.add_argument('--RL', action='store_true', help='Whether it is RL or not')
+    parser.add_argument('--log', action='store_true', help='Whether logging enabled or not')
     args = parser.parse_args()
     #os.system("iperf -s &")
     if not args.mptcp and not args.picoquic and not args.multiflow and not args.RL:
@@ -116,11 +118,25 @@ if __name__ == "__main__":
             print(sum(res) / 10)
         else:
             scores = []
-            for _ in range(5):
-                score = evaluate_mptcp(args.trace, args.ref, 1, args.mptcp_type, "5", args.tar, False)
+            for _ in range(1):
+                score = evaluate_mptcp(args.trace, args.ref, 5, args.mptcp_type, "5", args.tar, False)
+                if args.log:
+                    for s in score:
+                        scores.append(s)
+                else:
+                    print(score)
+                    scores.append(score)
+            if args.log:
+                print("Ref")
+                for s in scores:
+                    print(s[0], s[2], s[4])
+                print("Tar")
+                for s in scores:
+                    print(s[1], s[3])
+            else:
+                # print(sum(scores) / 5)
                 print(score)
-                scores.append(score)
-            print(sum(scores) / 5)
+                pass
             if args.mptcp_type == 1:
                 bandwidths_1 = get_continuous_throughput(parent_folder + "packet-logs/queue-service-log-uplink", get_start_time("queue-service-log-uplink", "queue-service-log-uplink"))
                 bandwidths_2 = get_continuous_throughput(parent_folder + "packet-logs-2/queue-service-log-uplink", get_start_time("queue-service-log-uplink", "queue-service-log-uplink"))
@@ -325,15 +341,24 @@ if __name__ == "__main__":
         logs = evaluate_multiflow_single_cc(args.trace, args.ref, 3, args.tar, True)
         print(logs)
     elif args.RL:
-        model = PPO.load("RL/models/bbr_vs_cubic_2_timesteps_with_delay_1_eval_1_history_0.99_gamma")
-        gym_env = RLlibEnv([1, 1, 10, 10], [1200, 50, 41, 91], 1, rl_evaluate, 1, "bbr", "cubic", 7, "5", 2, 1, 10, 0.99)
-        obs, _ = gym_env.reset()   # get initial observation
-        done = False
-        # trace = []
+        vals = []
+        model = PPO.load("RL/models/"+args.model)
+        gym_env = RLlibEnv([1, 1, 10, 10], [1200, 50, 41, 91], 1, rl_evaluate, 1, args.ref, args.tar, 7, "5", 6, 1, 10, 0.99)
+        for _ in range(5):
+            obs, _ = gym_env.reset()   # get initial observation
+            done = False
+            # trace = []
 
-        while not done:
-            action, _states = model.predict(obs, deterministic=True)  # greedy action
-            print(action, "Ekhane")
-            obs, reward, done, truncated, info = gym_env.step(action)
-            print("iteration shesh")
-        print("Trace:", gym_env.trace)
+            while not done:
+                action, _states = model.predict(obs, deterministic=False)  # greedy action
+                obs, reward, done, truncated, info = gym_env.step(action)
+            print("Trace:", gym_env.trace)
+
+            scores = []
+            for _ in range(5):
+                score = evaluate_mptcp(gym_env.trace, args.ref, 1, 7, "5", args.tar, False)
+                scores.append(score)
+            print(sum(scores) / 5)
+            vals.append(sum(scores) / 5)
+        print(vals)
+        print(sum(vals) / 1)

@@ -34,6 +34,14 @@ def read_uplink(folder):
                 tot_bytes += int(line[2])
     return tot_bytes, duration
 
+def get_first_packet_arrival_time(folder):
+    with open(parent_folder + folder + "packet-log-uplink") as f:
+        output = f.read()
+        line = output.split('\n')[1]
+        line = line.split('\t')
+        start_time = int(line[7])
+        return start_time
+
 def get_port(folder):
     no_of_validations = 5
     port_vs_count = {}
@@ -53,8 +61,8 @@ def get_port(folder):
                         if port_vs_count[dst_port] == no_of_validations:
                             return dst_port
 
-def read_packet_log_output_uplink(folder):
-    port = get_port(folder)
+def read_packet_log_output_uplink(folder, server_port, tot_duration):
+    start_time = get_first_packet_arrival_time(folder)
     with open(parent_folder + folder + "packet-log-output-uplink") as f:
         output = f.read()
         lines = output.split('\n')[:-1]
@@ -65,11 +73,13 @@ def read_packet_log_output_uplink(folder):
         for line in lines:
             if line != '':
                 line = line.split('\t')
-                tot_delay += float(line[0])
-                count += 1
-                if line[-2] == port:
+                if line[12] == server_port and int(line[1]) <= tot_duration:
+                    tot_delay += float(line[0])
+                    count += 1
                     tot_bytes += int(line[4])
                     duration = int(line[1])
+                elif int(line[1]) > tot_duration + start_time:
+                    break
         return tot_delay / count, tot_bytes * 8 * 1000 / (duration * 1024 * 1024), duration
 
 def run_iperf_client(server_ip, duration, alg, bw_file, lt_file, queue_length = 860):
@@ -130,23 +140,22 @@ def run_iperf_client_parallel(server_ip, duration, alg, bw_file, lt_file, queue_
     else:
         core_number = 0
     #PDO writing enabled
-    # command1 = "taskset -c "+str(core_number)+" mm-delay-link-rrc 10 "+ parent_folder +"AdvNet/traces/"+lt_file+" "+ parent_folder +"AdvNet/traces/"+bw_file+" "+ parent_folder +"AdvNet/traces/"+bw_file+" "+ parent_folder + folder + " --uplink-log="+ parent_folder + folder + "uplink --downlink-log="+ parent_folder + folder + "downlink --uplink-queue=droptail --uplink-queue-args=packets="+ str(queue_length)
+    command1 = "taskset -c "+str(core_number)+" mm-delay-link-rrc 10 "+ parent_folder +"AdvNet/traces/"+lt_file+" "+ parent_folder +"AdvNet/traces/"+bw_file+" "+ parent_folder +"AdvNet/traces/"+bw_file+" "+ parent_folder + folder + " --uplink-log="+ parent_folder + folder + "uplink --downlink-log="+ parent_folder + folder + "downlink --uplink-queue=droptail --uplink-queue-args=packets="+ str(queue_length)
     # PDO writing disabled
-    command1 = "taskset -c "+str(core_number + 2)+" mm-delay-link-rrc 10 "+ parent_folder +"AdvNet/traces/"+lt_file+" "+ parent_folder +"AdvNet/traces/"+bw_file+" "+ parent_folder +"AdvNet/traces/"+bw_file+" "+ parent_folder + folder + " --uplink-log= --downlink-log= --uplink-queue=droptail --uplink-queue-args=packets="+ str(queue_length)
+    # command1 = "taskset -c "+str(core_number + 2)+" mm-delay-link-rrc 10 "+ parent_folder +"AdvNet/traces/"+lt_file+" "+ parent_folder +"AdvNet/traces/"+bw_file+" "+ parent_folder +"AdvNet/traces/"+bw_file+" "+ parent_folder + folder + " --uplink-log= --downlink-log= --uplink-queue=droptail --uplink-queue-args=packets="+ str(queue_length)
     command3 = "sudo tcpdump -i ingress host 100.64.0.1 and port 5001 -w "+alg+".pcap &"
     # command3 = "sudo python3 tcp_seq_extractor.py &"# > " + alg + "_ebpf"
     # print(command1)
     commands = f"""
             {command1}
         """
-
+    server_port = str(core_number + 5000)
+    os.system("sudo kill -9 $(sudo lsof -t -i :"+server_port+");sleep 0.5;taskset -c "+str(core_number)+" iperf -s -p " + server_port + " &")
     egress_addr = run_command(shell, commands, True)
-    server_port = str(int(egress_addr.split('.')[-1]) + 5000)
     # os.system("sudo kill -9 $(sudo lsof -t -i :"+server_port+")")
     if lock is not None:
         core.value = (core_number + 3) % (os.cpu_count()-os.cpu_count()%3)
         lock.release()
-    os.system("sudo kill -9 $(sudo lsof -t -i :"+server_port+");sleep 0.5;taskset -c "+str(core_number)+" iperf -s -p " + server_port + " &")
     command2 = "taskset -c "+str(core_number + 1)+" sudo iperf -c " + egress_addr + " -p "+server_port+" -Z " + alg + " -t " + str(duration / 1000)
     print(command2)
     _ = run_command(shell, command2, False)
@@ -160,16 +169,16 @@ def run_iperf_client_parallel(server_ip, duration, alg, bw_file, lt_file, queue_
     sleep(1)
     # tot_bytes, duration = read_uplink(folder)
     tot_bytes, duration = ord(alg[0]), ord(alg[0])
-    return tot_bytes * 8 * 1000 / (duration * 1024 * 1024), duration, folder
+    return tot_bytes * 8 * 1000 / (duration * 1024 * 1024), duration, folder, server_port
 
 # Function to send a shell start command and capture its egress
 def run_command(shell, command, egress_needed):
-    sleep(0.1)
+    # sleep(0.1)
     shell.stdin.write(command + "\n")  # Send command
     shell.stdin.flush()  # Ensure command is executed
     egress_addr = None
     # output = []
-    sleep(0.1)
+    # sleep(0.1)
     while egress_needed:
         line = shell.stdout.readline()
         if "egress_addr:" in line:  # Stop reading once we find ingress_addr

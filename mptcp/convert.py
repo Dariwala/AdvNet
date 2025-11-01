@@ -3,11 +3,11 @@ from mptcp.split_trace import split_trace
 
 def convert(trace, mptcp_type, simplify = False):
     bandwidths_1, latencies_1, durations, bandwidths_2, latencies_2, queue_length = split_trace(trace, mptcp_type)
-    scale_up(bandwidths_1, 1000)
-    scale_up(bandwidths_2, 1000)
+    scale_up(bandwidths_1, 500)
+    scale_up(bandwidths_2, 500)
 
-    scale_up(latencies_1, 5)
-    scale_up(latencies_2, 5)
+    scale_up(latencies_1, 1)
+    scale_up(latencies_2, 1)
 
     scale_up(durations, 50)
 

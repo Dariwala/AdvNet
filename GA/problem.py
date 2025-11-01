@@ -46,6 +46,7 @@ class CCProblem(ElementwiseProblem):
             score = self.max_score
             out["F"] = -self.max_score
         self.update_max_score(time_passed, x, score)
+        self.log(time_passed, x, score)
         # if True:
         #     with open("patterns/UC2_"+self.args[0]+"_"+self.args[4] + "_" + str((len(list(x))-1)//5)+"_timesteps_delay_coeff", "a") as f:
         #         print(list(x), score, file = f)
@@ -63,10 +64,10 @@ class CCProblem(ElementwiseProblem):
                     with open("results/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay", "a") as f:
                         print(self.comps, self.max_score, list(x), file = f)
                 elif self.args[2] == 7:
-                    with open("results/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_parallel_7_eval_lcb_lam_3", "a") as f:
+                    with open("time_3600/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_parallel_"+str(self.args[1])+"_eval_median", "a") as f:
                         print(self.comps, time_passed, self.max_score, list(x), file = f)
                 elif self.args[2] == 8:
-                    with open("results/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_serial_2_eval", "a") as f:
+                    with open("iter_150/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_serial_"+str(self.args[1])+"_eval_median", "a") as f:
                         print(self.comps, time_passed, self.max_score, list(x), file = f)
                 elif self.args[2] == 5:
                     with open("results/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_2_links_with_delay", "a") as f:
@@ -76,6 +77,29 @@ class CCProblem(ElementwiseProblem):
             elif self.type == 2:
                 with open("results/score_across_comparisons_GA_dc_vs_hb_2_timesteps", "a") as f:
                     print(self.comps, self.max_score, list(x), file = f)
+    
+    def log(self, time_passed, x, score):
+        if self.type == 6:
+            with open("logs/score_across_comparisons_GA_"+self.args[0]+"_and_"+self.args[1]+"_vs_"+self.args[3]+"_2_timesteps_multiflow_picoquic", "a") as f:
+                print(self.comps, score, list(x), file = f)
+        elif self.type == 1:
+            if self.args[2] == 6:
+                with open("logs/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay", "a") as f:
+                    print(self.comps, score, list(x), file = f)
+            elif self.args[2] == 7:
+                with open("time_3600/logs/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_parallel_"+str(self.args[1])+"_eval_median", "a") as f:
+                    print(self.comps, time_passed, score, list(x), file = f)
+            elif self.args[2] == 8:
+                with open("iter_150/logs/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_serial_"+str(self.args[1])+"_eval_median", "a") as f:
+                    print(self.comps, time_passed, score, list(x), file = f)
+            elif self.args[2] == 5:
+                with open("logs/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_2_links_with_delay", "a") as f:
+                    print(self.comps, score, list(x), file = f)
+        # with open("results/score_across_comparisons_GA_"+self.args[0]+"_1_vs_2links_2_timesteps_with_delay", "a") as f:
+        #     print(self.comps, self.max_score, list(x), file = f)
+        elif self.type == 2:
+            with open("logs/score_across_comparisons_GA_dc_vs_hb_2_timesteps", "a") as f:
+                print(self.comps, score, list(x), file = f)
     
     def save(self):
         if self.type == 0:

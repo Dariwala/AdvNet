@@ -30,6 +30,7 @@ import time
 # import supersuit as ss
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import DummyVecEnv
+from stable_baselines3.common.vec_env import VecNormalize
 import logging
 # from pettingzoo.utils import parallel_to_aec
 # from pettingzoo.utils.wrappers import BaseParallelWrapper
@@ -112,9 +113,9 @@ if __name__ == "__main__":
             pass
         if args.alg == 0: #Random
             randomGenerator = RandomGeneration(args.trace_length, args.l_bounds, args.u_bounds, args.seed, evaluate_mptcp, args.type, args.ref, args.n_eval, args.mptcp_type, args.kernel, args.tar)
-            trace, score = randomGenerator.run(args.total_time)
-            print(trace, score)
-            randomGenerator.save()
+            randomGenerator.run(args.total_time)
+            # print(trace, score)
+            # randomGenerator.save()
         elif args.alg == 1: #GA
             start_time = time.perf_counter()
             # initialize the thread pool and create the runner
@@ -193,17 +194,24 @@ if __name__ == "__main__":
             #     stop={"training_iteration": args.n_iter},  # Stop after 50 iterations
             #     local_dir="./results",  # Save results to this directory
             # )
-            gym_env = RLlibEnv(args.l_bounds, [args.u_bounds[i] - args.l_bounds[i] + 1 for i in range(args.trace_length)], args.n_eval, evaluate_mptcp_rl, args.type, args.ref, args.tar, args.mptcp_type, args.kernel, args.rl_steps, args.history_len, args.seed, args.gamma)
+            def make_env():
+                gym_env = RLlibEnv(args.l_bounds, [args.u_bounds[i] - args.l_bounds[i] + 1 for i in range(args.trace_length)], args.n_eval, evaluate_mptcp_rl, args.type, args.ref, args.tar, args.mptcp_type, args.kernel, args.rl_steps, args.history_len, args.seed, args.gamma)
+                return gym_env
+            # 2. Wrap into a DummyVecEnv
+            venv = DummyVecEnv([make_env])
 
+            # 3. Add VecNormalize wrapper (normalizes obs + rewards)
+            venv = VecNormalize(venv, norm_obs=True, norm_reward=True, clip_obs=10.)
             # Train using Stable-Baselines3
-            model = PPO("MlpPolicy", gym_env, verbose=1, n_steps = 2, batch_size = 2, learning_rate = 1e-4, gamma=args.gamma)
+            model = PPO("MlpPolicy", venv, verbose=1, n_steps = 128, batch_size = 32, learning_rate = 1e-4, gamma=args.gamma)
 
             # Train the model
             model.learn(total_timesteps=args.n_iter)
 
             # Save the model
             model.save("RL/models/"+args.ref+"_vs_"+args.tar+"_"+str(args.rl_steps)+"_timesteps_with_delay_"+str(args.n_eval)+"_eval_"+str(args.history_len)+"_history_"+str(args.gamma)+"_gamma")
-
+            # Save VecNormalize stats
+            venv.save("RL/models/"+args.ref+"_vs_"+args.tar+"_"+str(args.rl_steps)+"_timesteps_with_delay_"+str(args.n_eval)+"_eval_"+str(args.history_len)+"_history_"+str(args.gamma)+"_gamma.pkl")
         # score = evaluate_mptcp([2 ,  5 , 68 , 17 , 30 ,363], args.ref, args.n_eval, args.mptcp_type, args.kernel, args.tar, True)
         # score = evaluate_mptcp([76, 106,  20,   5,  53,   8,   3,  16,  45,  40, 426], args.ref, args.n_eval, args.mptcp_type, args.kernel, args.tar, True)
         # print(score)

@@ -18,3 +18,7 @@ class NoiseHandler:
         std = np.std(samples, ddof=1)  # sample standard deviation
         n = len(samples)
         return mean - lam * (std / np.sqrt(n))
+    def max(self, values):
+        max_index, max_value = max(enumerate(values), key=lambda x: x[1])
+        return max_value, max_index
+

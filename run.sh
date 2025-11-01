@@ -11,8 +11,9 @@ seeds=(3)
 # tars=("cubic" "reno" "bbr" "bic" "cdg" "dctcp" "highspeed" "htcp" "hybla" "illinois" "lp" "nv" "scalable" "vegas" "veno" "westwood" "yeah")
 # tars=("cubic" "reno" "bbr" "bic" "cdg" "dctcp" "highspeed" "htcp" "hybla" "illinois" "lp" "nv" "scalable" "vegas" "veno" "westwood" "yeah")
 # refs=("cubic")
-tars=("bbr" "cubic" "highspeed" "reno" "vegas")
-refs=("highspeed" "reno" "vegas")
+# tars=("bbr")
+tars=("bbr" "cubic" "highspeed" "vegas" "reno")
+refs=("bbr" "cubic" "highspeed" "vegas" "reno")
 
 # Loop over each seed
 for ref in "${refs[@]}"; do
@@ -37,9 +38,17 @@ for ref in "${refs[@]}"; do
         # python search_adv_traces.py --l_bounds 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 10 10 10 10 10 --u_bounds 120 120 120 120 20 20 20 20 1 1 1 1 1 1 1 1 50 50 50 50 500 --trace_length=21 --alg=1 --ref="$ref" --tar="$tar" --seed=1 --n_iter=10 --pop_size=25 --n_eval=3 --kernel=5 --type=1 --mptcp_type=6 --total_time=3600
         # python search_adv_traces.py --l_bounds 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 10 10 10 10 10 10 --u_bounds 120 120 120 120 120 20 20 20 20 20 1 1 1 1 1 1 1 1 1 1 50 50 50 50 50 500 --trace_length=26 --alg=1 --ref="$ref" --tar="$tar" --seed=1 --n_iter=10 --pop_size=25 --n_eval=3 --kernel=5 --type=1 --mptcp_type=6 --total_time=3600
         # sudo ls;python search_adv_traces.py --l_bounds 1 1 1 1 10 10 10 --u_bounds 1200 1200 50 50 50 50 100 --trace_length=7 --alg=1 --ref="$ref" --tar="$tar" --seed=1 --n_iter=500 --pop_size=25 --n_eval=5 --type=4
-        # sudo ls;python search_adv_traces.py --l_bounds 1 1 1 1 10 10 50 --u_bounds 1200 1200 50 50 50 50 1000 --trace_length=7 --alg=1 --ref="$ref" --tar="$tar" --seed=1 --n_iter=1500 --pop_size=25 --n_eval=3 --kernel=5 --type=1 --mptcp_type=6 --total_time=3600
+        # sudo ls;python search_adv_traces.py --l_bounds 1 1 1 1 10 10 50 --u_bounds 200 200 100 100 50 50 1000 --trace_length=7 --alg=1 --ref="$ref" --tar="$tar" --seed=1 --n_iter=150 --pop_size=25 --n_eval=1 --kernel=5 --type=1 --mptcp_type=8 --total_time=36000
+        # sudo ls;python search_adv_traces.py --l_bounds 1 1 1 1 10 10 50 --u_bounds 200 200 100 100 50 50 1000 --trace_length=7 --alg=1 --ref="$ref" --tar="$tar" --seed=1 --n_iter=150 --pop_size=25 --n_eval=2 --kernel=5 --type=1 --mptcp_type=8 --total_time=36000
+        # sudo ls;python search_adv_traces.py --l_bounds 1 1 1 1 10 10 50 --u_bounds 200 200 100 100 50 50 1000 --trace_length=7 --alg=1 --ref="$ref" --tar="$tar" --seed=1 --n_iter=150 --pop_size=25 --n_eval=3 --kernel=5 --type=1 --mptcp_type=8 --total_time=36000
+        # sudo ls;python search_adv_traces.py --l_bounds 1 1 1 1 10 10 50 --u_bounds 200 200 100 100 50 50 1000 --trace_length=7 --alg=1 --ref="$ref" --tar="$tar" --seed=1 --n_iter=150 --pop_size=25 --n_eval=4 --kernel=5 --type=1 --mptcp_type=8 --total_time=36000
+        # sudo ls;python search_adv_traces.py --l_bounds 1 1 1 1 10 10 50 --u_bounds 200 200 100 100 50 50 1000 --trace_length=7 --alg=1 --ref="$ref" --tar="$tar" --seed=1 --n_iter=150 --pop_size=25 --n_eval=5 --kernel=5 --type=1 --mptcp_type=8 --total_time=36000
+        sudo ls;python search_adv_traces.py --l_bounds 1 1 1 1 10 10 50 --u_bounds 200 200 100 100 50 50 1000 --trace_length=7 --alg=0 --ref="$ref" --tar="$tar" --seed=1 --n_iter=350 --pop_size=25 --n_eval=5 --kernel=5 --type=1 --mptcp_type=7 --total_time=3600
+        # sudo ls;python search_adv_traces.py --l_bounds 1 1 1 1 10 10 50 --u_bounds 200 200 100 100 50 50 1000 --trace_length=7 --alg=1 --ref="$ref" --tar="$tar" --seed=1 --n_iter=150 --pop_size=25 --n_eval=8 --kernel=5 --type=1 --mptcp_type=7 --total_time=36000
+        # sudo ls;python search_adv_traces.py --l_bounds 1 1 1 1 10 10 50 --u_bounds 200 200 100 100 50 50 1000 --trace_length=7 --alg=1 --ref="$ref" --tar="$tar" --seed=1 --n_iter=150 --pop_size=25 --n_eval=9 --kernel=5 --type=1 --mptcp_type=7 --total_time=36000
+        # sudo ls;python search_adv_traces.py --l_bounds 1 1 1 1 10 10 50 --u_bounds 200 200 100 100 50 50 1000 --trace_length=7 --alg=1 --ref="$ref" --tar="$tar" --seed=1 --n_iter=150 --pop_size=25 --n_eval=10 --kernel=5 --type=1 --mptcp_type=7 --total_time=36000
         # sudo ls;python search_adv_traces.py --l_bounds 1 1 1 1 10 10 50 --u_bounds 1200 1200 50 50 50 50 1000 --trace_length=7 --alg=3 --ref="$ref" --tar="$tar" --seed=1 --n_iter=1500 --pop_size=25 --n_eval=3 --kernel=5 --type=1 --mptcp_type=6 --total_time=3600
-        sudo ls;python search_adv_traces.py --l_bounds 1 1 1 1 10 10 10 --u_bounds 1200 1200 50 50 50 50 100 --trace_length=7 --alg=1 --ref="$ref" --tar="$tar" --seed=1 --n_iter=500 --pop_size=25 --n_eval=7 --type=1 --mptcp_type=7 --kernel=5 --total_time=3600
+        # sudo ls;python search_adv_traces.py --l_bounds 1 1 1 1 1 1 1 1 1 1 1 1 10 10 10 10 10 10 10 --u_bounds 1200 1200 1200 1200 1200 1200 50 50 50 50 50 50 50 50 50 50 50 50 100 --trace_length=19 --alg=1 --ref="$ref" --tar="$tar" --seed=1 --n_iter=3300 --pop_size=25 --n_eval=3 --type=1 --mptcp_type=7 --kernel=5 --total_time=50000
         # ../clean.sh
         # rm traces/*
         # sleep 300
