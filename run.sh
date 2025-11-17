@@ -11,9 +11,8 @@ seeds=(3)
 # tars=("cubic" "reno" "bbr" "bic" "cdg" "dctcp" "highspeed" "htcp" "hybla" "illinois" "lp" "nv" "scalable" "vegas" "veno" "westwood" "yeah")
 # tars=("cubic" "reno" "bbr" "bic" "cdg" "dctcp" "highspeed" "htcp" "hybla" "illinois" "lp" "nv" "scalable" "vegas" "veno" "westwood" "yeah")
 # refs=("cubic")
-# tars=("bbr")
-tars=("bbr" "cubic" "highspeed" "vegas" "reno")
-refs=("bbr" "cubic" "highspeed" "vegas" "reno")
+tars=("bbr1")
+refs=("bbr")
 
 # Loop over each seed
 for ref in "${refs[@]}"; do

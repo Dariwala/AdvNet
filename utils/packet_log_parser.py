@@ -34,7 +34,7 @@ def compute_convergence(times, bytes, delays):
             chunk_no += 1
             count = 0
     if tot_bytes != 0:
-        throughputs.append(tot_bytes * 8 * 1000/ (chunk_interval * 1024 * 1024))
+        throughputs.append(tot_bytes)# * 8 * 1000/ (chunk_interval * 1024 * 1024))
         avg_delays.append(tot_delay / count)
     # for i in range(chunks_to_consider):
     #     print(throughputs[i], avg_delays[i])

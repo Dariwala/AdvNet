@@ -7,9 +7,12 @@ import subprocess
 from config import parent_folder
 import os
 import numpy as np
-from os import sleep
+from time import sleep
 from single_cc.evaluate import run_command
 import shutil
+import multiprocessing
+import uuid
+
 
 def extract_ports_from_log(lines):
     ports = []
@@ -49,7 +52,7 @@ def run_parallel(durations, ref, tar, bw_file, lt_file, queue_length = 860, lock
     # command1 = "taskset -c "+str(core_number)+" mm-delay-link-rrc 10 "+ parent_folder +"AdvNet/traces/"+lt_file+" "+ parent_folder +"AdvNet/traces/"+bw_file+" "+ parent_folder +"AdvNet/traces/"+bw_file+" "+ parent_folder + folder + " --uplink-log="+ parent_folder + folder + "uplink --downlink-log="+ parent_folder + folder + "downlink --uplink-queue=droptail --uplink-queue-args=packets="+ str(queue_length)
     # PDO writing disabled
     command1 = "taskset -c "+str(core_number + 2)+" mm-delay-link-rrc 10 "+ parent_folder +"AdvNet/traces/"+lt_file+" "+ parent_folder +"AdvNet/traces/"+bw_file+" "+ parent_folder +"AdvNet/traces/"+bw_file+" "+ parent_folder + folder + " --uplink-log= --downlink-log= --uplink-queue=droptail --uplink-queue-args=packets="+ str(queue_length)
-    command3 = "sudo tcpdump -i ingress host 100.64.0.1 and port 5001 -w "+alg+".pcap &"
+    # command3 = "sudo tcpdump -i ingress host 100.64.0.1 and port 5001 -w "+alg+".pcap &"
     # command3 = "sudo python3 tcp_seq_extractor.py &"# > " + alg + "_ebpf"
     # print(command1)
     commands = f"""
@@ -58,6 +61,7 @@ def run_parallel(durations, ref, tar, bw_file, lt_file, queue_length = 860, lock
         """
 
     egress_addr = run_command(shell, commands, True)
+    print("Hello")
     server_port = str(int(egress_addr.split('.')[-1]) + 5000)
     # os.system("sudo kill -9 $(sudo lsof -t -i :"+server_port+")")
     core.value = (core_number + 3) % os.cpu_count()
@@ -71,7 +75,7 @@ def run_parallel(durations, ref, tar, bw_file, lt_file, queue_length = 860, lock
     _ = run_command(shell, commands, False)
     _ = run_command(shell, "exit", False)
     # shell.stdin.close()  # Close input stream when done
-    stdout, stderr = shell.communicate(timeout=150)  # Final read with timeout
+    stdout, stderr = shell.communicate(timeout=15)  # Final read with timeout
     print(stdout, stderr)
     sleep(1)
     ref_port, tar_port = extract_ports_from_log(stdout.split('\n'))
@@ -85,7 +89,7 @@ def evaluate(trace, ref, n_evals, tar, log = False):
 
     bandwidths.append(bandwidths[0])
     latencies.append(latencies[0])
-    durations.append(100 * 1000)
+    durations.append(10 * 1000)
 
     bw_file = create_bandwidth_trace(bandwidths, durations)
     lt_file = create_delay_trace(latencies, durations)

@@ -13,6 +13,7 @@ from single_cc.evaluate import run_iperf_client
 from mptcp.convert import convert
 import multiprocessing
 from NoiseHandler.noisehandler import NoiseHandler
+from scoring.scoring import SingleCCProtocolScore, compute_score
 
 def read_packet_log_output_uplinks():
     tot_delay = 0.0
@@ -156,8 +157,13 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, log = False, lock = N
 
     results = []
     logs = []
-    t_coeff = 0.9
-    d_coeff = 0.1
+    t_coeff = 0.5
+    d_coeff = 0.5
+    t_ref = max(bandwidths_1)
+    l_ref = min(latencies_1)
+    singleCCProtocolScore = SingleCCProtocolScore(t_coeff, d_coeff, t_ref, l_ref).w_sum
+    ref_scores = []
+    tar_scores = []
     for _ in range(n_evals):
         if mptcp_type == 2 or mptcp_type == 3:
             throughput_mptcp, duration = run_iperf3_client(bw_file_1, lt_file_1, bw_file_2, lt_file_2, max(sum(durations_1), sum(durations_2)), 1, ref, kernel, queue_length)
@@ -261,6 +267,7 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, log = False, lock = N
                         delay, throughput, duration = read_packet_log_output_uplink(folder, server_port, sum(durations_1))
                         delays_ref.append(delay)
                         throughputs_ref.append(throughput)
+                        ref_scores.append(singleCCProtocolScore(throughput, delay))
                         if not log:
                             shutil.rmtree(parent_folder + folder)
                     except TypeError:
@@ -277,6 +284,7 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, log = False, lock = N
                         delay, throughput, duration = read_packet_log_output_uplink(folder, server_port, sum(durations_1))
                         delays_tar.append(delay)
                         throughputs_tar.append(throughput)
+                        tar_scores.append(singleCCProtocolScore(throughput, delay))
                         if not log:
                             shutil.rmtree(parent_folder + folder)
                     except TypeError:
@@ -293,7 +301,7 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, log = False, lock = N
             scores.append(t_coeff * (throughput_ref - throughput_tar) / throughput_ref + d_coeff * (delay_tar-delay_ref) / delay_tar)
             logs.append([throughput_ref, throughput_tar, delay_ref, delay_tar, scores[-1]])
         #mean below
-        noiseHandler = NoiseHandler().median
+        # noiseHandler = NoiseHandler().median
         # throughput_ref = noiseHandler(throughputs_ref)
         # throughput_tar = noiseHandler(throughputs_tar)
         # delay_ref = noiseHandler(delays_ref)
@@ -313,11 +321,12 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, log = False, lock = N
         # delay_ref = delays_ref[ref_index]
         # delay_tar = delays_tar[tar_index]
         # median below
-        throughput_ref = noiseHandler(throughputs_ref)
-        throughput_tar = noiseHandler(throughputs_tar)
-        delay_ref = noiseHandler(delays_ref)
-        delay_tar = noiseHandler(delays_tar)
-        score = t_coeff * (throughput_ref - throughput_tar) / throughput_ref + d_coeff * (delay_tar-delay_ref) / delay_tar
+        # throughput_ref = noiseHandler(throughputs_ref)
+        # throughput_tar = noiseHandler(throughputs_tar)
+        # delay_ref = noiseHandler(delays_ref)
+        # delay_tar = noiseHandler(delays_tar)
+        # score = t_coeff * (throughput_ref - throughput_tar) / throughput_ref + d_coeff * (delay_tar-delay_ref) / delay_tar
+        score = compute_score(ref_scores, tar_scores)
     elif mptcp_type == 8:
         throughput_sptcp_ref_avg = -1.0
         throughput_sptcp_tar_avg = -1.0
@@ -332,6 +341,7 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, log = False, lock = N
             avg_delay, throughput_sptcp_tar, duration = read_packet_log_output_uplink(folder, server_port, sum(durations_1))
             throughputs_tar.append(throughput_sptcp_tar)
             delays_tar.append(avg_delay)
+            tar_scores.append(singleCCProtocolScore(throughput_sptcp_tar, avg_delay))
             # os.system("sleep 1;cp "+parent_folder+"packet-logs/uplink "+parent_folder+"/packet-logs/tar_uplink")
             # os.system("cp "+parent_folder+"packet-logs/packet-log-output-uplink "+parent_folder+"/packet-logs/tar_packet-log-output-uplink")
             if not log:
@@ -341,6 +351,7 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, log = False, lock = N
             avg_delay, throughput_sptcp_ref, duration = read_packet_log_output_uplink(folder, server_port, sum(durations_1))
             throughputs_ref.append(throughput_sptcp_ref)
             delays_ref.append(avg_delay)
+            ref_scores.append(singleCCProtocolScore(throughput_sptcp_ref, avg_delay))
             if not log:
                 shutil.rmtree(parent_folder + folder)
         scores = []
@@ -352,7 +363,7 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, log = False, lock = N
             score = t_coeff * (throughput_ref - throughput_tar) / throughput_ref + d_coeff * (delay_tar-delay_ref) / delay_tar
             scores.append(score)
             logs.append([throughput_ref, throughput_tar, delay_ref, delay_tar, score])
-        noiseHandler = NoiseHandler().median
+        # noiseHandler = NoiseHandler().median
         # score = noiseHandler(scores)
         # mean below
         # throughput_ref = noiseHandler(throughputs_ref)
@@ -366,11 +377,12 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, log = False, lock = N
         # delay_ref = delays_ref[ref_index]
         # delay_tar = delays_tar[tar_index]
         # median below
-        throughput_ref = noiseHandler(throughputs_ref)
-        throughput_tar = noiseHandler(throughputs_tar)
-        delay_ref = noiseHandler(delays_ref)
-        delay_tar = noiseHandler(delays_tar)
-        score = t_coeff * (throughput_ref - throughput_tar) / throughput_ref + d_coeff * (delay_tar-delay_ref) / delay_tar
+        # throughput_ref = noiseHandler(throughputs_ref)
+        # throughput_tar = noiseHandler(throughputs_tar)
+        # delay_ref = noiseHandler(delays_ref)
+        # delay_tar = noiseHandler(delays_tar)
+        # score = t_coeff * (throughput_ref - throughput_tar) / throughput_ref + d_coeff * (delay_tar-delay_ref) / delay_tar
+        score = compute_score(ref_scores, tar_scores)
     # os.system("rm traces/"+bw_file_1+" traces/"+lt_file_1)
     if log:
         return logs

@@ -47,18 +47,20 @@ class Scoring(ABC):
         pass
 
 class SingleCCProtocolScore():
-    def __init__(self, wt=0.5, wl=0.5):
+    def __init__(self, wt, wl, t_ref, l_ref):
         self.wt = wt
         self.wl = wl
+        self.t_ref = t_ref
+        self.l_ref = l_ref
     def tbd(self, throughput, latency):
         return throughput / latency
-    def w_sum(self, throughput, latency, t_ref, l_ref):
-        t_rel = throughput / t_ref
-        l_rel = l_ref / latency
+    def w_sum(self, throughput, latency):
+        t_rel = throughput / self.t_ref
+        l_rel = self.l_ref / latency
         return self.wt * t_rel + self.wl * l_rel
-    def g_mean_sum(self, throughput, latency, t_ref, l_ref):
-        t_rel = throughput / t_ref
-        l_rel = l_ref / latency
+    def g_mean_sum(self, throughput, latency):
+        t_rel = throughput / self.t_ref
+        l_rel = self.l_ref / latency
         return (t_rel ** self.wt) * (l_rel ** self.wl)
 
 def compute_score(ref_scores, tar_scores):

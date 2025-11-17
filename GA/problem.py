@@ -77,6 +77,9 @@ class CCProblem(ElementwiseProblem):
             elif self.type == 2:
                 with open("results/score_across_comparisons_GA_dc_vs_hb_2_timesteps", "a") as f:
                     print(self.comps, self.max_score, list(x), file = f)
+            elif self.type == 4:
+                with open("results/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[2]+"_2_timesteps_5_eval_multiflow_lcb", "a") as f:
+                    print(self.comps, time_passed, self.max_score, list(x), file = f)
     
     def log(self, time_passed, x, score):
         if self.type == 6:

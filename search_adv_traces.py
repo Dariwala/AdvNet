@@ -70,7 +70,7 @@ if __name__ == "__main__":
     )
 
     # Disable logging globally:
-    logging.disable(logging.CRITICAL)  # turns off all logs <= CRITICAL
+    logging.disable(logging.NOTSET)  # turns off all logs <= CRITICAL
 
     if args.type == 0: #Single CC
         # server_process = subprocess.Popen(['iperf', '-s'], stdout=subprocess.PIPE, text=True)

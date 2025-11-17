@@ -13,7 +13,7 @@ class UniformMutation(Mutation):
                 r = random.random()
 
                 if r < self.prob:
-                    new_value = random.randint(problem.xl[j], problem.xu[j])
+                    new_value = random.randint(int(problem.xl[j]), int(problem.xu[j]))
                     X[i][j] = new_value
 
         return X
