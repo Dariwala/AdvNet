@@ -13,12 +13,15 @@ class RandomGeneration():
         self.evaluate = evaluate
         self.args = args
         self.type = type
+        self.comps = 0
+        self.max_score = -np.inf
         self.max_score_vs_time = []
         # self.ref = ref
         # self.n_eval = n_eval
         # self.fuzzing = fuzzing
 
     def generate_trace(self):
+        self.comps += 1
         trace = []
 
         for i in range(self.trace_length):
@@ -28,31 +31,33 @@ class RandomGeneration():
     
     def run(self, total_time):
         start_time = time.perf_counter()
-        best_score = -np.inf
-        best_trace = None
-        while time.perf_counter() - start_time < total_time:
+        time_passed = time.perf_counter() - start_time
+        while time_passed < total_time:
             trace = self.generate_trace()
             if self.type == 0: #single_cc
                 score = self.evaluate(trace, self.args[0], self.args[1], fuzzing = self.args[2])
             elif self.type == 1: #mptcp
-                score = self.evaluate(trace, self.args[0], self.args[1], self.args[2], self.args[3])
+                score = self.evaluate(trace, self.args[0], self.args[1], self.args[2], self.args[3], self.args[4])
             elif self.type == 2: #dchannel
                 score = self.evaluate(trace, self.args[0])
 
-            if score > best_score:
-                best_score = score
-                best_trace = trace
-                self.max_score_vs_time.append([time.perf_counter() - start_time, best_score])
-        return best_trace, best_score
-    
-    def save(self):
-        if self.type == 0:
-            if self.args[2]:
-                method = "fuzzing"
-            else:
-                method = "advnet"
-        elif self.type == 1:
-            method = "mptcp_type_"+str(self.args[2])
-        import pickle
-        with open("results/score_across_time_random_"+self.args[0]+"_"+str(self.seed)+"_"+str(self.trace_length)+"_trace_length_" + method, "wb") as f:
-            pickle.dump(self.max_score_vs_time, f)
+            self.log(trace, time_passed, score)
+
+            if score > self.max_score:
+                self.max_score = score
+                self.max_score_vs_time.append([time.perf_counter() - start_time, self.max_score])
+                self.save(trace, time_passed)
+                
+            time_passed = time.perf_counter() - start_time
+
+    def log(self, trace, time_passed, score):
+        if self.type == 1:
+            if self.args[2] == 7:
+                with open("time_3600/logs/score_across_comparisons_RG_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_parallel_"+str(self.args[1])+"_eval_median_tcoeff_0.1", "a") as f:
+                    print(self.comps, time_passed, score, trace, file = f)
+
+    def save(self, trace, time_passed):
+        if self.type == 1:
+            if self.args[2] == 7:
+                with open("time_3600/score_across_comparisons_RG_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_parallel_"+str(self.args[1])+"_eval_median_tcoeff_0.1", "a") as f:
+                    print(self.comps, time_passed, self.max_score, trace, file = f)

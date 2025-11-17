@@ -4,7 +4,7 @@ def create_trace(bandwidths, durations):
     unique_filename = f"file_{float(time.time())}"
 
     with open("traces/" + unique_filename, 'w') as file:
-        file.write("PDO\n")
+        # file.write("PDO\n")
         base_time = 0
         for i, duration in enumerate(durations):
             bandwidth = bandwidths[i]

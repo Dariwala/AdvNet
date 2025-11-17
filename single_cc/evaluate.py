@@ -162,7 +162,7 @@ def run_iperf_client_parallel(server_ip, duration, alg, bw_file, lt_file, queue_
     _ = run_command(shell, "exit", False)
     # shell.stdin.close()  # Close input stream when done
     try:
-        stdout, stderr = shell.communicate(timeout=10)  # Final read with timeout
+        stdout, stderr = shell.communicate(timeout=20)  # Final read with timeout
     except subprocess.TimeoutExpired:
         return 0, 0, folder
     print(stdout, stderr)

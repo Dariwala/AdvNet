@@ -92,8 +92,8 @@ class RLlibEnv(gym.Env):
         self.results = {}
         self.current_step_no = 0
         self.trace_reward = 0
-        if self.evaluation_thread is not None:
-            self.evaluation_thread.join()
+        # if self.evaluation_thread is not None:
+        #     self.evaluation_thread.join()
         self.evaluation_thread = None
         self.trace = []
         self.prev_tot_delay = [0 for _ in range(2 * self.n_evals)]
@@ -101,6 +101,7 @@ class RLlibEnv(gym.Env):
         self.prev_no_packets = [0 for _ in range(2 * self.n_evals)]
         self.prev_timestamps = [0 for _ in range(2 * self.n_evals)]
         os.system("sudo pkill -9 mm")
+        sleep(0.5)
         self.logger.debug("Reset method initialized everything")
         self.delete_and_recreate_folders()
         return self._get_obs(), info
@@ -144,7 +145,10 @@ class RLlibEnv(gym.Env):
         occupancies_tar = []
         for i in range(2 * self.n_evals):
             curr_time, tot_bytes_sent, tot_packets_sent, tot_latency, queue_occupancy = self.results[str(i)+"_"+str(self.current_step_no)]
-            throughput = (tot_bytes_sent - self.prev_tot_bytes[i]) * 0.008 / (curr_time - self.prev_timestamps[i])
+            try:
+                throughput = (tot_bytes_sent - self.prev_tot_bytes[i]) * 0.008 / (curr_time - self.prev_timestamps[i])
+            except ZeroDivisionError:
+                throughput = 0
             throughputs.append(throughput)
             self.prev_tot_bytes[i] = tot_bytes_sent
             self.prev_timestamps[i] = curr_time
@@ -173,7 +177,10 @@ class RLlibEnv(gym.Env):
             sum_delay_ref += delay_ref
             sum_delay_tar += delay_tar
 
-            score = (throughput_ref - throughput_tar) / (throughput_ref * 2) + (delay_tar - delay_ref) / (delay_tar * 2)
+            try:
+                score = (throughput_ref - throughput_tar) / (throughput_ref * 2) + (delay_tar - delay_ref) / (delay_tar * 2)
+            except ZeroDivisionError:
+                score = -10
             scores.append(score)
 
             i+=2
@@ -242,7 +249,7 @@ class RLlibEnv(gym.Env):
                     if i < 2:
                         trace += [self.l_bound[i] + action[i]] * self.steps_in_an_episode
                     else:
-                        trace += [self.l_bound[i] + action[i]] + [self.l_bound[i] + self.bound_range[i] - 1] * (self.steps_in_an_episode - 1)
+                        trace += [self.l_bound[i] + action[i]] + [500] * (self.steps_in_an_episode - 1)
                 trace += time_invariant_trace
                 self.logger.debug(f"Initial trace from action: {trace}")
                 self.trace = trace

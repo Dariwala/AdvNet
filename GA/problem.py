@@ -3,7 +3,7 @@ import numpy as np
 import time
 
 class CCProblem(ElementwiseProblem):
-    def __init__(self, trace_length, lower_bound, upper_bound, evaluate, seed, start_time, total_time, type, *args, **kwargs):
+    def __init__(self, trace_length, lower_bound, upper_bound, evaluate, seed, start_time, total_time, type, pop = None, *args, **kwargs):
         self.trace_length = trace_length
         self.lower_bound = np.array(lower_bound)
         self.upper_bound = np.array(upper_bound)
@@ -16,35 +16,44 @@ class CCProblem(ElementwiseProblem):
         self.max_score_vs_time = []
         self.type = type
         self.comps = 0
+        self.pop = pop
         # self.args = self.args[0:1] + (1,) + self.args[2:]
         super().__init__(n_var=trace_length, n_obj=1, n_ieq_constr=0, n_eq_constr = 0, xl=lower_bound, xu=upper_bound, **kwargs)
 
     def _evaluate(self, x, out, *args, **kwargs):
         time_passed = time.perf_counter() - self.start_time
 
-        # if time_passed > self.total_time * 0.5:
-        #     self.args = self.args[0:1] + (1,) + self.args[2:]
-
-        if time_passed < self.total_time:
-            self.comps += 1
-            if self.type == 0:
-                score = self.func(list(x), self.args[0], self.args[1], fuzzing = self.args[2])
-            elif self.type == 1:
-                score = self.func(list(x), self.args[0], self.args[1], self.args[2], self.args[3], self.args[4])
-            elif self.type == 2:
-                score = self.func(list(x), self.args[0])
-            elif self.type == 3:
-                score = self.func(list(x), self.args[0], self.args[1], self.args[2], self.args[3])
-            elif self.type == 4:
-                score = self.func(list(x), self.args[0], self.args[1], self.args[2])
-            elif self.type == 5:
-                score = self.func(list(x), self.args[0], self.args[1], self.args[2])
-            elif self.type == 6:
-                score = self.func(list(x), self.args[0], self.args[1], self.args[2], self.args[3])
-            out["F"] =  -score##
+        for p in self.pop:
+            if np.all(np.isclose(x, p.X)):
+                out["F"] = -p.F
+                score = -out["F"]
+                print(("Paisi", score))
+                break
         else:
-            score = self.max_score
-            out["F"] = -self.max_score
+
+            # if time_passed > self.total_time * 0.5:
+            #     self.args = self.args[0:1] + (1,) + self.args[2:]
+
+            if time_passed < self.total_time:
+                self.comps += 1
+                if self.type == 0:
+                    score = self.func(list(x), self.args[0], self.args[1], fuzzing = self.args[2])
+                elif self.type == 1:
+                    score = self.func(list(x), self.args[0], self.args[1], self.args[2], self.args[3], self.args[4])
+                elif self.type == 2:
+                    score = self.func(list(x), self.args[0])
+                elif self.type == 3:
+                    score = self.func(list(x), self.args[0], self.args[1], self.args[2], self.args[3])
+                elif self.type == 4:
+                    score = self.func(list(x), self.args[0], self.args[1], self.args[2])
+                elif self.type == 5:
+                    score = self.func(list(x), self.args[0], self.args[1], self.args[2])
+                elif self.type == 6:
+                    score = self.func(list(x), self.args[0], self.args[1], self.args[2], self.args[3])
+                out["F"] =  -score##
+            else:
+                score = self.max_score
+                out["F"] = -self.max_score
         self.update_max_score(time_passed, x, score)
         self.log(time_passed, x, score)
         # if True:
@@ -64,7 +73,7 @@ class CCProblem(ElementwiseProblem):
                     with open("results/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay", "a") as f:
                         print(self.comps, self.max_score, list(x), file = f)
                 elif self.args[2] == 7:
-                    with open("time_3600/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_parallel_"+str(self.args[1])+"_eval_median", "a") as f:
+                    with open("time_3600/score_across_comparisons_RG_then_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_parallel_"+str(self.args[1])+"_eval_median_tcoeff_0.1", "a") as f:
                         print(self.comps, time_passed, self.max_score, list(x), file = f)
                 elif self.args[2] == 8:
                     with open("iter_150/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_serial_"+str(self.args[1])+"_eval_median", "a") as f:
@@ -90,7 +99,7 @@ class CCProblem(ElementwiseProblem):
                 with open("logs/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay", "a") as f:
                     print(self.comps, score, list(x), file = f)
             elif self.args[2] == 7:
-                with open("time_3600/logs/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_parallel_"+str(self.args[1])+"_eval_median", "a") as f:
+                with open("time_3600/logs/score_across_comparisons_RG_then_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_parallel_"+str(self.args[1])+"_eval_median_tcoeff_0.1", "a") as f:
                     print(self.comps, time_passed, score, list(x), file = f)
             elif self.args[2] == 8:
                 with open("iter_150/logs/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_serial_"+str(self.args[1])+"_eval_median", "a") as f:

@@ -39,6 +39,54 @@ import logging
 #     raw_env = CustomEnvironment(config=config)
 #     return PettingZooEnv(raw_env)
 
+def get_top_individuals(filename, max_time, pop_size):
+    import ast
+    import numpy as np
+    """
+    Reads a file and returns the top `pop_size` individuals (decision variables)
+    with the highest scores, filtering by maximum time.
+    
+    Parameters:
+        filename (str): Path to the file.
+        max_time (float): Maximum allowed time for filtering.
+        pop_size (int): Number of top individuals to return.
+    
+    Returns:
+        top_X (np.ndarray): Array of top individuals (shape: pop_size x n_vars)
+        top_scores (np.ndarray): Array of their corresponding scores
+    """
+    individuals = []
+    scores = []
+
+    with open(filename, 'r') as f:
+        for line in f:
+            parts = line.strip().split(maxsplit=3)
+            if len(parts) < 4:
+                continue
+            time = float(parts[1])
+            score = float(parts[2])
+            if time > max_time:
+                break
+            # convert string representation of list to actual list
+            ind = ast.literal_eval(parts[3])
+            individuals.append(ind)
+            scores.append(score)
+
+    if not individuals:
+        return np.array([]), np.array([])
+
+    # Convert to numpy arrays
+    individuals = np.array(individuals)
+    scores = np.array(scores)
+
+    # Get indices of top scores (higher is better)
+    top_indices = np.argsort(scores)[-pop_size:][::-1]  # descending order
+
+    top_X = individuals[top_indices]
+    top_scores = scores[top_indices]
+
+    return top_X, top_scores    
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--type', type=int, default=0, help="0 for single_cc, 1 for mptcp, 2 for dchannel")
@@ -46,6 +94,7 @@ if __name__ == "__main__":
     parser.add_argument('--dchannel_exp_type', type=int, default=1, help='1 for all-hb vs pkt-state')
     parser.add_argument('--picoquic_exp_type', type=int, default=1)
     parser.add_argument('--kernel', type=str, default=5, help='5/6 for kernel version 5/6.4.x')
+    parser.add_argument('--initial_pop_file', type=str, default="None", help='Initial population file')
     parser.add_argument('--alg', type=int, default=0, help="0 for random generation, 1 for GA, 2 for BO")
     parser.add_argument('--trace_length', type=int, default=3)
     parser.add_argument('--seed', type=int, default=10)
@@ -123,8 +172,18 @@ if __name__ == "__main__":
             # pool = multiprocessing.Pool(n_proccess)
             # runner = StarmapParallelization(pool.starmap)
             problem = CCProblem(args.trace_length, args.l_bounds, args.u_bounds, evaluate_mptcp, args.seed, start_time, args.total_time, args.type, args.ref, args.n_eval, args.mptcp_type, args.kernel, args.tar)
-            ga = AdvNetGA(problem, args.pop_size, args.seed, args.n_iter)
-            result = ga.run()
+            if args.initial_pop_file == "None":
+                problem = CCProblem(args.trace_length, args.l_bounds, args.u_bounds, evaluate_mptcp, args.seed, start_time, args.total_time, args.type, args.ref, args.n_eval, args.mptcp_type, args.kernel, args.tar)
+                ga = AdvNetGA(problem, args.pop_size, args.seed, args.n_iter)
+            else:
+                initial_X, initial_F = get_top_individuals(args.initial_pop_file, 1800, args.pop_size)
+                from pymoo.core.population import Population
+                from pymoo.core.individual import Individual
+                individuals = [Individual(X=x, F=f) for x, f in zip(initial_X, initial_F)]
+                pop = Population(individuals)
+                problem = CCProblem(args.trace_length, args.l_bounds, args.u_bounds, evaluate_mptcp, args.seed, start_time, args.total_time, args.type, pop, args.ref, args.n_eval, args.mptcp_type, args.kernel, args.tar)
+                ga = AdvNetGA(problem, args.pop_size, args.seed, args.n_iter, pop)
+            ga.run()
             # pool.close()  # Prevents new tasks from being submitted
             # pool.join()   # Waits for all workers to finish
             # with open("UC2_SPTCP_Linux_Kernel_with_delay_coeff", "a") as f:
