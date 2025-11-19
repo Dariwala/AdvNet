@@ -68,3 +68,9 @@ def compute_score(ref_scores, tar_scores):
     tar_score = np.median(tar_scores)
 
     return (ref_score - tar_score) / ref_score
+
+def compute_score_independent(ref_scores, tar_scores):
+    ref_score = np.max(ref_scores)
+    tar_score = np.min(tar_scores)
+
+    return (ref_score - tar_score) / ref_score
