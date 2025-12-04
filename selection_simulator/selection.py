@@ -13,7 +13,7 @@ def run_test(
     best_trace, best_score = selection_function(traces, time_budget)
     
     with open(output_filename, 'a') as f:
-        f.write(f"180 {time_budget} {best_score} {best_trace}\n")
+        f.write(f"1 {time_budget} {best_score} {best_trace}\n")
 
 class SampledRV:
     def __init__(self, trace):
@@ -72,7 +72,7 @@ def mst_selector(
         # Eliminate
         round_size = max(5, int(round_size * 0.5))
     
-    return srv[0]._rv
+    return srv[0]._trace, srv[0].get_sample_mean()
 
 def extract_top_K_traces(filename, max_time, pop_size):
     import ast
@@ -115,17 +115,31 @@ def extract_top_K_traces(filename, max_time, pop_size):
     # Get indices of top scores (higher is better)
     top_indices = np.argsort(scores)[-pop_size:][::-1]  # descending order
 
-    top_X = individuals[top_indices]
+    top_X = individuals[top_indices].tolist()
 
-    return list(top_X)
+    return top_X
 
+
+import argparse
 
 if __name__ == "__main__":
-    ref = "cubic"
-    tar = "bbr"
-    time_pct = 0.1
-    file_name = "../t_coeff_0.5/score_across_comparisons_GA_"+ref+"_vs_"+tar+"_2_timesteps_with_delay_serial_1_eval_median_iter_250"
-    output_filename = "../t_coeff_0.5/score_across_comparisons_GA_"+ref+"_vs_"+tar+"_2_timesteps_with_delay_serial_1_eval_median_iter_250_selection_mst_"+str(time_pct)
+    parser = argparse.ArgumentParser(description="Run experiment with CC protocols.")
+
+    parser.add_argument("--ref", type=str, default="cubic",
+                        help="Reference congestion control protocol")
+    parser.add_argument("--tar", type=str, default="bbr",
+                        help="Target congestion control protocol")
+    parser.add_argument("--time_pct", type=float, default=0.1,
+                        help="Time percentage cutoff")
+    args = parser.parse_args()
+
+    ref = args.ref
+    tar = args.tar
+    time_pct = args.time_pct
+    file_name = "t_coeff_0.5/logs/score_across_comparisons_GA_"+ref+"_vs_"+tar+"_2_timesteps_with_delay_parallel_5_eval_median_iter_250"
+    output_filename = "t_coeff_0.5/score_across_comparisons_GA_"+ref+"_vs_"+tar+"_2_timesteps_with_delay_parallel_5_eval_median_iter_250_selection_mst_"+str(time_pct)
 
     time_budget = int(3600 * time_pct)
     traces = extract_top_K_traces(file_name, 3600 - time_budget, 25)
+    # print(traces[0])
+    run_test(time_budget, mst_selector, traces)
