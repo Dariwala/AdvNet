@@ -74,6 +74,64 @@ def mst_selector(
     
     return srv[0]._trace, srv[0].get_sample_mean()
 
+def wtm_selector(
+    traces,
+    time_budget: int,
+):
+    n = len(traces)
+    srv = [SampledRV(traces[i]) for i in range(n)]
+    start_time = time.perf_counter()
+
+    i = 0
+    while i < n and (time.perf_counter() - start_time) < time_budget:
+        srv[i].take_sample()
+        i += 1
+
+    # ---- 2. Tournament elimination (MST-like) ----
+    while len(srv) > 4 and time.perf_counter() - start_time < time_budget:
+        k = len(srv)
+        
+        for i in range(k):
+            if time.perf_counter() - start_time >= time_budget:
+                break
+            srv[i].take_sample()
+
+        # Sort and eliminate bottom fraction
+        srv.sort(key=lambda rv: rv.get_sample_mean(), reverse=True)
+        survivors = max(4, int(k * 0.5))
+        srv = srv[:survivors]
+
+    # ---- 3. Top-two focused phase ----
+    # Now only a few arms remain (≤ 4). We spend the rest of the budget
+    # mostly on the best two arms, but never exceed `budget`.
+    while time.perf_counter() - start_time < time_budget:
+        # Re-rank
+        srv.sort(key=lambda rv: rv.get_sample_mean(), reverse=True)
+        k = len(srv)
+        if k == 1:
+            break
+
+        best = srv[0]
+        second = srv[1]
+
+        best.take_sample()
+        
+        if time.perf_counter() - start_time >= time_budget:
+            break
+        second.take_sample()
+
+        # 3.3 Occasional exploration for remaining arms
+        for other in srv[2:]:
+            if time.perf_counter() - start_time >= time_budget:
+                break
+            other.take_sample()
+
+        # Loop repeats, recomputes best/second with updated means
+
+    # Final winner
+    srv.sort(key=lambda rv: rv.get_sample_mean(), reverse=True)
+    return srv[0]._trace, srv[0].get_sample_mean()
+
 def extract_top_K_traces(filename, max_time, pop_size):
     import ast
     import numpy as np
