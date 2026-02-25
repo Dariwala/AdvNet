@@ -22,14 +22,15 @@ class CCProblem(ElementwiseProblem):
 
     def _evaluate(self, x, out, *args, **kwargs):
         time_passed = time.perf_counter() - self.start_time
-
-        for p in self.pop:
-            if np.all(np.isclose(x, p.X)):
-                out["F"] = -p.F
-                score = -out["F"]
-                print(("Paisi", score))
-                break
-        else:
+        is_in_init_pop = False
+        if self.pop is not None:
+            for p in self.pop:
+                if np.all(np.isclose(x, p.X)):
+                    out["F"] = -p.F
+                    score = -out["F"]
+                    is_in_init_pop = True
+                    break
+        if not is_in_init_pop:
 
             # if time_passed > self.total_time * 0.5:
             #     self.args = self.args[0:1] + (1,) + self.args[2:]
@@ -73,10 +74,10 @@ class CCProblem(ElementwiseProblem):
                     with open("results/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay", "a") as f:
                         print(self.comps, self.max_score, list(x), file = f)
                 elif self.args[2] == 7:
-                    with open("time_3600/score_across_comparisons_RG_then_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_parallel_"+str(self.args[1])+"_eval_median_tcoeff_0.1", "a") as f:
+                    with open("t_coeff_0.5/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_parallel_"+str(self.args[1])+"_eval_median_time_7200", "a") as f:
                         print(self.comps, time_passed, self.max_score, list(x), file = f)
                 elif self.args[2] == 8:
-                    with open("iter_150/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_serial_"+str(self.args[1])+"_eval_median", "a") as f:
+                    with open("t_coeff_0.5/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_serial_"+str(self.args[1])+"_eval_median_iter_250", "a") as f:
                         print(self.comps, time_passed, self.max_score, list(x), file = f)
                 elif self.args[2] == 5:
                     with open("results/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_2_links_with_delay", "a") as f:
@@ -99,10 +100,10 @@ class CCProblem(ElementwiseProblem):
                 with open("logs/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay", "a") as f:
                     print(self.comps, score, list(x), file = f)
             elif self.args[2] == 7:
-                with open("time_3600/logs/score_across_comparisons_RG_then_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_parallel_"+str(self.args[1])+"_eval_median_tcoeff_0.1", "a") as f:
+                with open("t_coeff_0.5/logs/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_parallel_"+str(self.args[1])+"_eval_median_time_7200", "a") as f:
                     print(self.comps, time_passed, score, list(x), file = f)
             elif self.args[2] == 8:
-                with open("iter_150/logs/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_serial_"+str(self.args[1])+"_eval_median", "a") as f:
+                with open("t_coeff_0.5/logs/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_serial_"+str(self.args[1])+"_eval_median_iter_250", "a") as f:
                     print(self.comps, time_passed, score, list(x), file = f)
             elif self.args[2] == 5:
                 with open("logs/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_2_links_with_delay", "a") as f:
