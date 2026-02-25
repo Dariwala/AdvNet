@@ -162,7 +162,7 @@ if __name__ == "__main__":
             pass
         if args.alg == 0: #Random
             randomGenerator = RandomGeneration(args.trace_length, args.l_bounds, args.u_bounds, args.seed, evaluate_mptcp, args.type, args.ref, args.n_eval, args.mptcp_type, args.kernel, args.tar)
-            randomGenerator.run(args.total_time)
+            randomGenerator.run(args.total_time, args.n_iter)
             # print(trace, score)
             # randomGenerator.save()
         elif args.alg == 1: #GA
@@ -173,10 +173,10 @@ if __name__ == "__main__":
             # runner = StarmapParallelization(pool.starmap)
             problem = CCProblem(args.trace_length, args.l_bounds, args.u_bounds, evaluate_mptcp, args.seed, start_time, args.total_time, args.type, args.ref, args.n_eval, args.mptcp_type, args.kernel, args.tar)
             if args.initial_pop_file == "None":
-                problem = CCProblem(args.trace_length, args.l_bounds, args.u_bounds, evaluate_mptcp, args.seed, start_time, args.total_time, args.type, args.ref, args.n_eval, args.mptcp_type, args.kernel, args.tar)
+                problem = CCProblem(args.trace_length, args.l_bounds, args.u_bounds, evaluate_mptcp, args.seed, start_time, args.total_time, args.type, None, args.ref, args.n_eval, args.mptcp_type, args.kernel, args.tar)
                 ga = AdvNetGA(problem, args.pop_size, args.seed, args.n_iter)
             else:
-                initial_X, initial_F = get_top_individuals(args.initial_pop_file, 1800, args.pop_size)
+                initial_X, initial_F = get_top_individuals(args.initial_pop_file, 3600, args.pop_size)
                 from pymoo.core.population import Population
                 from pymoo.core.individual import Individual
                 individuals = [Individual(X=x, F=f) for x, f in zip(initial_X, initial_F)]
