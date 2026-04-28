@@ -12,6 +12,8 @@ from multiflow.picoquic_corrected import evaluate as evaluate_picoquic_multiflow
 from random_generator.random_generator import RandomGeneration
 import os, subprocess
 from GA.ga import AdvNetGA
+from BO.bo import AdvNetBO
+from BL.bl import AdvNetEpsGreedy
 from pymoo.core.problem import StarmapParallelization
 # from RL.bandit import Env, MonteCarloBanditAgent, bandit_learning
 from RL.single_agent_rl import RLlibEnv
@@ -323,6 +325,14 @@ if __name__ == "__main__":
 
             # Save the model
             # model.save("ppo_custom_env")
+        elif args.alg == 4:
+            start_time = time.perf_counter()
+            bo = AdvNetBO(args.trace_length, args.l_bounds, args.u_bounds, evaluate_mptcp, args.type, args.n_iter, args.seed, start_time, args.total_time, None, args.ref, args.n_eval, args.mptcp_type, args.kernel, args.tar)
+            bo.run()
+        elif args.alg == 5:
+            start_time = time.perf_counter()
+            bo = AdvNetEpsGreedy(args.trace_length, args.l_bounds, args.u_bounds, evaluate_mptcp, args.type, args.n_iter, args.seed, start_time, args.total_time, None, 0.3, 10, args.ref, args.n_eval, args.mptcp_type, args.kernel, args.tar)
+            bo.run()
     elif args.type == 2: #dchannel
         os.system("iperf -s &")
         if args.alg == 0: #Random
