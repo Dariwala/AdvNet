@@ -265,3 +265,7 @@ To extend AdvNet to a new domain:
 3. Pass any additional parameters via `CCProblem`
 4. Add a new case in `GA/problem.py::_evaluate`
 5. Implement logging via `update_max_score` and `log`
+
+# Using Modified Mahimahi
+We modified Mahimahi to support time-varying latency and additional logging. The repo is available here:  
+[Modified Mahimahi (delay-trace branch)](https://github.com/Dariwala/mahimahi-cdn/tree/delay-trace)
