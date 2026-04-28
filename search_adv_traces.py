@@ -6,6 +6,7 @@ from mptcp.evaluate import evaluate as evaluate_mptcp
 from mptcp.evaluate import rl_evaluate as evaluate_mptcp_rl
 from dchannel.evaluate import evaluate as evaluate_dchannel
 from picoquic.evaluate import evaluate as evaluate_picoquic
+from ns3_tcp.evaluate import evaluate as evaluate_ns3_tcp
 from multiflow.single_cc import evaluate as evaluate_multiflow_single_cc
 from multiflow.mptcp import evaluate as evaluate_multiflow_mptcp
 from multiflow.picoquic_corrected import evaluate as evaluate_picoquic_multiflow_single_cc
@@ -173,7 +174,6 @@ if __name__ == "__main__":
             # n_proccess = args.n_processes
             # pool = multiprocessing.Pool(n_proccess)
             # runner = StarmapParallelization(pool.starmap)
-            problem = CCProblem(args.trace_length, args.l_bounds, args.u_bounds, evaluate_mptcp, args.seed, start_time, args.total_time, args.type, args.ref, args.n_eval, args.mptcp_type, args.kernel, args.tar)
             if args.initial_pop_file == "None":
                 problem = CCProblem(args.trace_length, args.l_bounds, args.u_bounds, evaluate_mptcp, args.seed, start_time, args.total_time, args.type, None, args.ref, args.n_eval, args.mptcp_type, args.kernel, args.tar)
                 ga = AdvNetGA(problem, args.pop_size, args.seed, args.n_iter)
@@ -419,6 +419,12 @@ if __name__ == "__main__":
 
             # Save the model
             model.save(args.ref+"_"+args.tar+"_PPO")
+    elif args.type == 7: #ns3 TCP
+        if args.alg == 1: #GA
+            start_time = time.perf_counter()
+            problem = CCProblem(args.trace_length, args.l_bounds, args.u_bounds, evaluate_ns3_tcp, args.seed, start_time, args.total_time, args.type, None, args.ref, args.tar)
+            ga = AdvNetGA(problem, args.pop_size, args.seed, args.n_iter)
+            result = ga.run()
             
     # os.system("rm traces/*")
     os.system("pkill -9 iperf")
