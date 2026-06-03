@@ -67,12 +67,9 @@ See the [paper](https://doi.org/10.1145/3808660) for the full pairwise heatmaps 
 | `BO/`, `BL/` | Bayesian-optimization and epsilon-greedy baseline searchers. |
 | `RL/` | Reinforcement-learning agents and environments. |
 | `scoring/` | Adversarial scoring of reference-vs-target performance. |
-| `NoiseHandler/` | Noise-handling mechanism for reliable evaluation. |
-| `Simplify/` | Simplifies discovered traces into interpretable patterns. |
-| `ns3_tcp/` | ns-3 evaluation backend for Linux TCP. |
 | `single_cc/`, `mptcp/`, `picoquic/`, `dchannel/`, `multiflow/` | Emulation backends for single-flow CC, MPTCP, QUIC, data channels, and multi-flow setups. |
 | `utils/`, `selection_simulator/` | Helpers and the post-learning selection simulator. |
-| `patterns/`, `results/`, `Plots/` | Extracted patterns, search logs, and figures/plotting scripts. |
+| `Plots/` | Figures/plotting scripts. |
 
 ## Installation
 
