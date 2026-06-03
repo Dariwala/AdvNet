@@ -9,7 +9,7 @@
 [![Python 3.8](https://img.shields.io/badge/Python-3.8-3776ab)](requirements.txt)
 
 <p align="center">
-  <img src="Plots/thumbnail.jpg" alt="AdvNet system architecture" width="360">
+  <img src="Plots/system_arch.png" alt="AdvNet system architecture" width="360">
 </p>
 
 ## Overview
