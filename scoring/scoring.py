@@ -1,5 +1,18 @@
+"""Scoring utilities for comparing a reference and a target protocol.
+
+A trace's adversarial "score" captures how much worse the *target* protocol
+performs than the *reference* under the emulated conditions. Higher scores mean
+the trace is more adversarial for the target.
+"""
+
 from abc import ABC, abstractmethod
+from typing import Optional
+
 import numpy as np
+
+# Sentinel returned when a relative difference is undefined (division by zero).
+INVALID_SCORE = -100
+
 
 class Scoring(ABC):
     """
@@ -22,17 +35,17 @@ class Scoring(ABC):
         float: Returns the relative difference of the two inputs
         """
 
-        if score_type == 1: #higher is better
+        if score_type == 1:  # higher is better
             if reference_score == 0:
-                return -100
+                return INVALID_SCORE
             else:
                 return (reference_score - target_score) / reference_score
-        elif score_type == 2: #lower is better
+        elif score_type == 2:  # lower is better
             if target_score == 0:
-                return -100
+                return INVALID_SCORE
             else:
                 return (target_score - reference_score) / target_score
-    
+
     def __compute_score_of_a_protocol_from_logs(self, log_files):
         """
         Computes score of reference or target based on the
@@ -46,30 +59,62 @@ class Scoring(ABC):
         """
         pass
 
+
 class SingleCCProtocolScore():
-    def __init__(self, wt, wl, t_ref, l_ref):
+    """Combines throughput, latency and (optionally) loss into a single utility.
+
+    Scores are normalized against reference operating points (``t_ref``,
+    ``l_ref``, ``loss_ref``) and combined with the configured weights.
+    """
+
+    def __init__(self, wt: float, wl: float, t_ref: float, l_ref: float, loss_ref: Optional[float] = None):
+        """Args:
+            wt: Weight on the (normalized) throughput term.
+            wl: Weight on the (normalized) latency term.
+            t_ref: Reference throughput used to normalize throughput.
+            l_ref: Reference latency used to normalize latency.
+            loss_ref: Optional reference loss rate; enables the loss term.
+        """
         self.wt = wt
         self.wl = wl
         self.t_ref = t_ref
         self.l_ref = l_ref
-    def tbd(self, throughput, latency):
+        self.loss_ref = loss_ref
+
+    def tbd(self, throughput: float, latency: float) -> float:
+        """Throughput-over-latency ratio (a simple bandwidth-delay utility)."""
         return throughput / latency
-    def w_sum(self, throughput, latency):
-        t_rel = throughput / self.t_ref
-        l_rel = self.l_ref / latency
+
+    def w_sum(self, throughput: float, latency: float, loss_rate: Optional[float] = None) -> float:
+        """Weighted sum of normalized throughput, latency and optional loss."""
+        t_rel = min(throughput / self.t_ref, 1.0)
+        l_rel = min(self.l_ref / latency, 1.0)
+        loss_rate_rel = min(self.loss_ref / (loss_rate + 1e-6), 1.0) if self.loss_ref is not None and loss_rate is not None else None
+        if loss_rate_rel is not None:
+            return self.wt * t_rel + self.wl * l_rel + (1 - self.wt - self.wl) * loss_rate_rel
         return self.wt * t_rel + self.wl * l_rel
-    def g_mean_sum(self, throughput, latency):
+
+    def g_mean_sum(self, throughput: float, latency: float) -> float:
+        """Weighted geometric mean of normalized throughput and latency."""
         t_rel = throughput / self.t_ref
         l_rel = self.l_ref / latency
         return (t_rel ** self.wt) * (l_rel ** self.wl)
 
+
 def compute_score(ref_scores, tar_scores):
+    """Adversarial score from per-trace reference/target score samples.
+
+    Returns the median-based relative difference ``(ref - tar) / max(ref, tar)``;
+    higher means the trace hurts the target more relative to the reference.
+    """
     ref_score = np.median(ref_scores)
     tar_score = np.median(tar_scores)
 
-    return (ref_score - tar_score) / max(ref_score, tar_score)
+    return (ref_score - tar_score) / (max(ref_score, tar_score))
+
 
 def compute_score_independent(ref_scores, tar_scores):
+    """Same relative-difference score as :func:`compute_score`."""
     ref_score = np.median(ref_scores)
     tar_score = np.median(tar_scores)
 

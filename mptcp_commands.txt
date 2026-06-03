@@ -1,5 +1,0 @@
-mm-multipath 10 ../sample_traces/delay_trace ../sample_traces/bandwidth_trace ../sample_traces/bandwidth_trace ../packet-logs-2/ ../sample_traces/delay_trace ../sample_traces/bandwidth_trace ../sample_traces/bandwidth_trace ../packet-logs/
-
-sudo ip mptcp endpoint add 100.64.0.3 subflow 100.64.0.4
-
-mptcpize run iperf3 -c 100.64.0.1

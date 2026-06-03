@@ -1,3 +1,37 @@
-__pycache__
-traces/file_*
+# Python
+__pycache__/
+*.py[cod]
+
+# OS / editor
+.DS_Store
+
+# Local config (copy config.example.py -> config.py)
 config.py
+
+# Secrets — never commit credentials
+*service_account*.json
+*.key
+*.pem
+.env
+
+# Large generated data — kept locally, never committed
+traces/
+abr/
+t_coeff_0.5/
+Plots/adversarial_traces/
+Plots/score_across_time/
+Plots/AdvNet_training_variance/
+ns3_tcp/tcp_evolution_results/
+
+# Loose experiment outputs / scratch (removed from tracking, kept locally)
+res
+*_results
+*.pcap
+/temp
+/commands.txt
+/mptcp_commands.txt
+/test.py
+/clustering_traces.py
+/validating_fuzz_scoring.py
+/understanding_noise_mptcp.py
+/tcp_seq_extractor.py
