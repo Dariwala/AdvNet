@@ -83,7 +83,19 @@ AdvNet drives a network emulator and (for the ns-3 backend) an ns-3 build:
   ```bash
   export ADVNET_NS3_PATH=/path/to/ns-3-dev
   ```
-- **Local configuration**: copy `config.example.py` to `config.py` (gitignored) and adjust.
+- **Local configuration (`config.py`)**: copy the template, then set `parent_folder`:
+  ```bash
+  cp config.example.py config.py
+  ```
+  `config.py` is gitignored and imported throughout the emulation backends. Its key setting
+  is **`parent_folder`** — the absolute path (with a trailing slash) of the directory that
+  *contains* the `AdvNet/` repo as well as the emulator's `packet-logs/` and `packet-logs-2/`
+  output directories. Backends read traces from `<parent_folder>AdvNet/traces/` and read/write
+  per-run logs under `<parent_folder>packet-logs[-2]/`. For example, if the repo lives at
+  `/home/you/AdvNet`, set `parent_folder = "/home/you/"` and create the log dirs once:
+  ```bash
+  mkdir -p /home/you/packet-logs /home/you/packet-logs-2
+  ```
 - **Modified Mahimahi**: the emulation backends use a modified Mahimahi that supports
   time-varying latency and extra logging:
   [Modified Mahimahi (delay-trace branch)](https://github.com/Dariwala/mahimahi-cdn/tree/delay-trace).
