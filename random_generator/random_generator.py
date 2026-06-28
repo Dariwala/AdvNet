@@ -72,6 +72,8 @@ class RandomGeneration():
                 score = self.evaluate(trace, self.args[0])
             elif self.type == 7:
                 score = self.evaluate(trace, self.args[0], self.args[1])
+            elif self.type == 8:  # cache
+                score = self.evaluate(trace, self.args[0], self.args[1], self.args[2])
 
             self.log(trace, time_passed, score)
 
@@ -89,6 +91,8 @@ class RandomGeneration():
                 self._append("time_3600/logs/score_across_comparisons_RG_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_parallel_"+str(self.args[1])+"_eval_median_tcoeff_0.1", self.comps, time_passed, score, trace)
         elif self.type == 7:
             self._append("t_coeff_0.5/logs/score_across_comparisons_NS3_RG_"+self.args[0]+"_vs_"+self.args[1]+"_2_timesteps_with_delay", self.comps, score, trace)
+        elif self.type == 8:
+            self._append("logs/score_across_random_cache_RG_"+self.args[0]+"_vs_"+self.args[1]+"_"+str(self.args[2]), self.comps, score, trace)
 
     def save(self, trace, time_passed):
         """Record the best trace so far to the per-domain results file."""
@@ -97,3 +101,5 @@ class RandomGeneration():
                 self._append("time_3600/score_across_comparisons_RG_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_parallel_"+str(self.args[1])+"_eval_median_tcoeff_0.1", self.comps, time_passed, self.max_score, trace)
         elif self.type == 7:
             self._append("t_coeff_0.5/score_across_comparisons_NS3_RG_"+self.args[0]+"_vs_"+self.args[1]+"_2_timesteps_with_delay", self.comps, self.max_score, trace)
+        elif self.type == 8:
+            self._append("results/score_across_random_cache_RG_"+self.args[0]+"_vs_"+self.args[1]+"_"+str(self.args[2]), self.comps, time_passed, self.max_score, trace)
