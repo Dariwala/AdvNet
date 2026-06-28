@@ -78,7 +78,11 @@ def _run_cachesim(trace_path, policy, cache_size, debug=False):
     string ("100MB") or a raw integer number of bytes. Returns ``None`` on
     failure or if the output can't be parsed.
     """
-    cmd = [CACHESIM_BIN, trace_path, "csv", policy, str(cache_size), "-t", CSV_TRACE_PARAMS]
+    # "-o /dev/null" discards cachesim's per-run summary file; otherwise it
+    # writes result/<trace>.cachesim for every call, flooding a result/ dir
+    # during a search. We parse the miss ratio from stdout, not that file.
+    cmd = [CACHESIM_BIN, trace_path, "csv", policy, str(cache_size),
+           "-t", CSV_TRACE_PARAMS, "-o", "/dev/null"]
     if debug:
         print("    $", " ".join(cmd))
     try:
