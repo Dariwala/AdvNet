@@ -119,7 +119,7 @@ if __name__ == "__main__":
         else:
             scores = []
             for _ in range(1):
-                score = evaluate_mptcp(args.trace, args.ref, 5, args.mptcp_type, "5", args.tar, False)
+                score = evaluate_mptcp(args.trace, args.ref, 10, args.mptcp_type, "5", args.tar, False)
                 if args.log:
                     for s in score:
                         scores.append(s)
@@ -134,8 +134,8 @@ if __name__ == "__main__":
                 for s in scores:
                     print(s[1], s[3])
             else:
-                # print(sum(scores) / 5)
-                print(score)
+                # print(np.median(scores))
+                # print(score)
                 pass
             if args.mptcp_type == 1:
                 bandwidths_1 = get_continuous_throughput(parent_folder + "packet-logs/queue-service-log-uplink", get_start_time("queue-service-log-uplink", "queue-service-log-uplink"))

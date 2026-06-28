@@ -22,7 +22,7 @@ SOURCE=$6       # compute or fromfile
 N_LAST=${7:-1}  # optional, default 1
 
 # Validate inputs
-if [[ "$ALG" != "GA" && "$ALG" != "RG" && "$ALG" != "RG_then_GA" ]]; then
+if [[ "$ALG" != "GA" && "$ALG" != "RG" && "$ALG" != "EPS" ]]; then
     echo "ALG must be GA or RG"
     exit 1
 fi
@@ -43,13 +43,17 @@ fi
 if [[ "$LCB" == "lcb" ]]; then
     FILE_SUFFIX="_${TIMESTEPS}_timesteps_with_delay_${SERIAL}_${EVAL}_eval_lcb"
 else
-    FILE_SUFFIX="_${TIMESTEPS}_timesteps_with_delay_${SERIAL}_${EVAL}_eval_median_tcoeff_0.1"
+    FILE_SUFFIX="_${TIMESTEPS}_timesteps_with_delay_${SERIAL}_${EVAL}_eval_median_time_7200_selection_mst_0.1"
 fi
 
-PATTERN="time_3600/score_across_comparisons_${ALG}_*_vs_*${FILE_SUFFIX}"
+PATTERN="t_coeff_1/score_across_comparisons_${ALG}_*_vs_*${FILE_SUFFIX}"
 
-refs=("bbr" "cubic" "highspeed" "reno" "vegas" "dctcp" "hybla" "illinois" "westwood" "scalable")
-tars=("bbr" "cubic" "highspeed" "reno" "vegas" "dctcp" "hybla" "illinois" "westwood" "scalable")
+# refs=("bbr" "cubic" "highspeed" "reno" "vegas" "dctcp" "hybla" "illinois" "westwood" "scalable" "bic" "cdg" "htcp" "lp" "nv" "veno" "yeah")
+tars=("bbr" "cubic" "highspeed" "reno" "vegas")
+refs=("bbr" "cubic" "highspeed" "reno" "vegas")
+# tars=("bbr" "cubic" "highspeed" "reno" "vegas" "dctcp" "hybla" "illinois" "westwood" "scalable" "bic" "cdg" "htcp" "lp" "nv" "veno" "yeah")
+# refs=("hybla")
+# tars=("highspeed")
 declare -A results
 
 for file in $PATTERN; do
