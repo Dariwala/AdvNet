@@ -86,14 +86,30 @@ class RandomGeneration():
         """Log every evaluated trace to the per-domain log file."""
         if self.type == 1:
             if self.args[2] == 7:
+<<<<<<< Updated upstream
                 self._append("time_3600/logs/score_across_comparisons_RG_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_parallel_"+str(self.args[1])+"_eval_median_tcoeff_0.1", self.comps, time_passed, score, trace)
         elif self.type == 7:
             self._append("t_coeff_0.5/logs/score_across_comparisons_NS3_RG_"+self.args[0]+"_vs_"+self.args[1]+"_2_timesteps_with_delay", self.comps, score, trace)
+=======
+                with open("d_coeff_1/logs/score_across_comparisons_RG_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_parallel_"+str(self.args[1])+"_eval_median_time_3600", "a") as f:
+                    print(self.comps, time_passed, score, trace, file = f)
+            elif self.args[2] == 8:
+                with open("t_coeff_0.5/logs/score_across_comparisons_RG_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_serial_"+str(self.args[1])+"_eval_median_iter_150", "a") as f:
+                    print(self.comps, time_passed, score, trace, file = f)
+>>>>>>> Stashed changes
 
     def save(self, trace, time_passed):
         """Record the best trace so far to the per-domain results file."""
         if self.type == 1:
             if self.args[2] == 7:
+<<<<<<< Updated upstream
                 self._append("time_3600/score_across_comparisons_RG_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_parallel_"+str(self.args[1])+"_eval_median_tcoeff_0.1", self.comps, time_passed, self.max_score, trace)
         elif self.type == 7:
             self._append("t_coeff_0.5/score_across_comparisons_NS3_RG_"+self.args[0]+"_vs_"+self.args[1]+"_2_timesteps_with_delay", self.comps, self.max_score, trace)
+=======
+                with open("d_coeff_1/score_across_comparisons_RG_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_parallel_"+str(self.args[1])+"_eval_median_time_3600", "a") as f:
+                    print(self.comps, time_passed, self.max_score, trace, file = f)
+            elif self.args[2] == 8:
+                with open("t_coeff_0.5/score_across_comparisons_RG_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_serial_"+str(self.args[1])+"_eval_median_iter_150", "a") as f:
+                    print(self.comps, time_passed, self.max_score, trace, file = f)
+>>>>>>> Stashed changes

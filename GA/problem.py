@@ -133,7 +133,12 @@ class CCProblem(ElementwiseProblem):
             if self.args[2] == 6:
                 self._append("logs/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay", self.comps, score, list(x))
             elif self.args[2] == 7:
+<<<<<<< Updated upstream
                 self._append("t_coeff_0.5/logs/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_parallel_"+str(self.args[1])+"_eval_median_time_7200", self.comps, time_passed, score, list(x))
+=======
+                with open("t_coeff_1/logs/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_parallel_"+str(self.args[1])+"_eval_median_time_7200", "a") as f:
+                    print(self.comps, time_passed, score, list(x), file = f)
+>>>>>>> Stashed changes
             elif self.args[2] == 8:
                 self._append("t_coeff_0.5/logs/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[4]+"_2_timesteps_with_delay_serial_"+str(self.args[1])+"_eval_median_iter_250", self.comps, time_passed, score, list(x))
             elif self.args[2] == 5:

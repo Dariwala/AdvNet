@@ -13,7 +13,7 @@ from single_cc.evaluate import run_iperf_client
 from mptcp.convert import convert
 import multiprocessing
 from NoiseHandler.noisehandler import NoiseHandler
-from scoring.scoring import SingleCCProtocolScore, compute_score
+from scoring.scoring import SingleCCProtocolScore, compute_score, compute_score_independent
 
 def read_packet_log_output_uplinks():
     tot_delay = 0.0
@@ -157,8 +157,8 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, log = False, lock = N
 
     results = []
     logs = []
-    t_coeff = 0.5
-    d_coeff = 0.5
+    t_coeff = 1
+    d_coeff = 1 - t_coeff
     t_ref = max(bandwidths_1)
     l_ref = min(latencies_1)
     singleCCProtocolScore = SingleCCProtocolScore(t_coeff, d_coeff, t_ref, l_ref).w_sum

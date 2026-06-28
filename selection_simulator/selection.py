@@ -189,15 +189,18 @@ if __name__ == "__main__":
                         help="Target congestion control protocol")
     parser.add_argument("--time_pct", type=float, default=0.1,
                         help="Time percentage cutoff")
+    parser.add_argument("--alg", type=str, default="GA",
+                        help="GA or RG")
     args = parser.parse_args()
 
     ref = args.ref
     tar = args.tar
     time_pct = args.time_pct
-    file_name = "t_coeff_0.5/logs/score_across_comparisons_GA_"+ref+"_vs_"+tar+"_2_timesteps_with_delay_parallel_5_eval_median_iter_250"
-    output_filename = "t_coeff_0.5/score_across_comparisons_GA_"+ref+"_vs_"+tar+"_2_timesteps_with_delay_parallel_5_eval_median_iter_250_selection_mst_"+str(time_pct)
+    alg = args.alg
+    file_name = "t_coeff_1/logs/score_across_comparisons_"+alg+"_"+ref+"_vs_"+tar+"_2_timesteps_with_delay_parallel_4_eval_median_time_7200"
+    output_filename = "t_coeff_1/score_across_comparisons_"+alg+"_"+ref+"_vs_"+tar+"_2_timesteps_with_delay_parallel_4_eval_median_time_7200_selection_mst_"+str(time_pct)
 
-    time_budget = int(3600 * time_pct)
-    traces = extract_top_K_traces(file_name, 3600 - time_budget, 25)
+    time_budget = int(7200 * time_pct)
+    traces = extract_top_K_traces(file_name, 7200 - time_budget, 25)
     # print(traces[0])
     run_test(time_budget, mst_selector, traces)
