@@ -10,13 +10,13 @@ workload is more adversarial for the target policy.
 Cache sizing (``cache_size`` argument)
 --------------------------------------
   - An absolute string like ``"100MB"`` / ``"1GB"`` -> fixed cache size; the
-    whole trace vector is segment knobs (length ``5 * T``).
+    whole trace vector is segment knobs (length ``6 * T``).
   - ``"absolute"`` -> fixed cache at the default size (``DEFAULT_ABS_CACHE_SIZE``).
   - ``"knob"`` -> the cache size is *searchable*: the LAST element of the trace
     vector is a fraction knob, decoded as ``fraction = enc / FRACTION_SCALE``,
     and the cache is sized to ``fraction * footprint`` (footprint = total bytes
-    of all distinct objects). The segment part is therefore length ``5 * T`` and
-    the full vector length is ``5 * T + 1``. Suggested bounds for the knob:
+    of all distinct objects). The segment part is therefore length ``6 * T`` and
+    the full vector length is ``6 * T + 1``. Suggested bounds for the knob:
     ``5 .. 500`` -> 0.5% .. 50% of the footprint.
 
 The ``cachesim`` binary location is read from the ``ADVNET_CACHESIM`` environment
@@ -112,9 +112,9 @@ def evaluate(trace, ref_policy, tar_policy, cache_size="100MB",
     """Score a workload by how much worse ``tar_policy`` is than ``ref_policy``.
 
     Args:
-        trace: Encoded decision vector. In fixed-size mode it is ``5 * T``
+        trace: Encoded decision vector. In fixed-size mode it is ``6 * T``
             segment knobs; in ``cache_size="knob"`` mode the last element is the
-            cache-size fraction knob (so length ``5 * T + 1``). See module docs.
+            cache-size fraction knob (so length ``6 * T + 1``). See module docs.
         ref_policy / tar_policy: libCacheSim eviction algorithms, e.g. "LRU",
             "FIFO", "ARC", "LFU", "LeCaR", "Cacheus".
         cache_size: Absolute string ("100MB"), "absolute" for the default fixed
@@ -192,10 +192,10 @@ def evaluate(trace, ref_policy, tar_policy, cache_size="100MB",
 
 if __name__ == "__main__":
     # Manual smoke test of the searchable-cache-size (knob) mode.
-    # 2 segments x 5 knobs, then a trailing cache-size fraction knob.
-    # [alpha, n_objs, size, churn, scan] x2  +  [fraction]
-    example_trace = [120, 50, 8, 10, 5,
-                     90, 200, 4, 40, 20,
+    # 2 segments x 6 knobs, then a trailing cache-size fraction knob.
+    # [alpha, n_objs, size, churn, scan, locality] x2  +  [fraction]
+    example_trace = [120, 50, 8, 10, 5, 30,
+                     90, 200, 4, 40, 20, 60,
                      100]  # fraction knob: 100/1000 = 10% of footprint
     print("Example cache trace (knob mode):", example_trace)
     s = evaluate(example_trace, ref_policy="LRU", tar_policy="FIFO",

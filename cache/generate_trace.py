@@ -8,10 +8,10 @@ trace that libCacheSim can simulate.
 Trace encoding
 --------------
 This module consumes the per-segment knobs only: ``T`` segments laid out
-back-to-back, ``5`` integer knobs each (so the segment part has length
-``5 * T``)::
+back-to-back, ``6`` integer knobs each (so the segment part has length
+``6 * T``)::
 
-    [a1, n1, s1, c1, k1,  a2, n2, s2, c2, k2,  ...]
+    [a1, n1, s1, c1, k1, L1,  a2, n2, s2, c2, k2, L2,  ...]
 
 (The optional global cache-size *fraction* knob is handled one level up, in
 ``cache.evaluate``; it is stripped before the vector reaches this module.)
@@ -26,12 +26,22 @@ n (n_objs)  size of the popularity pool         n_objs = n * 1000 objects
 s (size)    object size for this segment        size   = s * 512 bytes
 c (churn)   % of requests to brand-new objects  churn  = c / 100  (0..1)
 k (scan)    one-shot unique objects (LRU scan)  scan   = k * 100  objects
+L (loc)     % recency-driven re-accesses        loc    = L / 100  (0..1)
 ==========  ==================================  ===========================
 
 Each segment emits a contiguous ``scan`` burst (unique one-shot objects, the
-classic LRU-polluting pattern) followed by ``REQS_PER_SEGMENT`` requests drawn
-from a Zipf popularity distribution, with a ``churn`` fraction diverted to
-never-seen objects (compulsory misses / locality drift).
+classic LRU-polluting pattern) followed by ``REQS_PER_SEGMENT`` requests. Each
+of those requests is, in order of precedence:
+  - with probability ``churn``: a brand-new object (compulsory miss / drift);
+  - else with probability ``loc``: a *recency-driven re-access* of a recently
+    requested object (sampled from a sliding window of the last
+    ``RECENCY_WINDOW`` requests) -- this creates the short reuse distances that
+    recency policies (LRU) exploit but insertion-order policies (FIFO) do not;
+  - else: an independent Zipf draw from the popularity pool (the memoryless /
+    IRM component).
+
+``loc = 0`` reproduces the original purely-IRM workload (no temporal locality),
+so adding this knob is backward compatible at that setting.
 
 Object-id namespaces are disjoint so they don't collide across kinds:
   - popularity pool ids:  ``0 .. n_objs-1``  (hot ids shared across segments,
@@ -45,17 +55,23 @@ a stable objective and runs are reproducible.
 
 import os
 import tempfile
+from collections import deque
 
 import numpy as np
 
 # Knobs per segment in the encoded decision vector.
-KNOBS_PER_SEGMENT = 5
+KNOBS_PER_SEGMENT = 6
 
 # Decoding scales (encoded integer -> physical quantity).
 ALPHA_SCALE = 0.01   # alpha  = a * 0.01
 NOBJ_SCALE = 1000    # n_objs = n * 1000 objects
 SIZE_SCALE = 512     # size   = s * 512 bytes
 SCAN_SCALE = 100     # scan   = k * 100 one-shot objects
+# churn and locality decode as percentages: value / 100.
+
+# Sliding window of recently requested objects that recency-driven re-accesses
+# sample from. Sets the reuse-distance scale of the locality component.
+RECENCY_WINDOW = 100
 
 # Number of popularity-driven requests per segment (excludes the scan burst).
 # Kept fixed so per-evaluation cost is predictable; libCacheSim runs millions of
@@ -79,7 +95,7 @@ def generate_trace(trace, seed: int = 42):
     """Expand an encoded knob vector into a CSV trace file for libCacheSim.
 
     Args:
-        trace: Flat list of ``5 * T`` integers (segment knobs; see module docstring).
+        trace: Flat list of ``6 * T`` integers (segment knobs; see module docstring).
         seed: RNG seed; fixed by default so identical knobs -> identical trace.
 
     Returns:
@@ -107,12 +123,18 @@ def generate_trace(trace, seed: int = 42):
             "size": max(int(trace[base + 2]) * SIZE_SCALE, 1),
             "churn": min(max(trace[base + 3] / 100.0, 0.0), 1.0),
             "scan": max(int(trace[base + 4]) * SCAN_SCALE, 0),
+            "loc": min(max(trace[base + 5] / 100.0, 0.0), 1.0),
         })
     max_n_objs = max(s["n_objs"] for s in segments)
 
     # First-seen size of each distinct popularity-pool object (0 = not yet seen).
     pool_first_size = np.zeros(max_n_objs, dtype=np.int64)
     footprint = 0  # distinct bytes from scan + churn objects (pool added at end)
+
+    # Sliding window of recently requested objects (persists across segments) for
+    # the recency-driven re-access component. Scan one-shots are excluded so a
+    # scan stays pure pollution.
+    recent = deque(maxlen=RECENCY_WINDOW)
 
     churn_id = CHURN_ID_BASE
     scan_id = SCAN_ID_BASE
@@ -123,6 +145,8 @@ def generate_trace(trace, seed: int = 42):
         f.write("time,obj,size\n")
         for s in segments:
             size = s["size"]
+            churn = s["churn"]
+            loc = s["loc"]
 
             # Contiguous one-shot scan burst (pollutes recency-based caches).
             for _ in range(s["scan"]):
@@ -131,27 +155,30 @@ def generate_trace(trace, seed: int = 42):
                 scan_id += 1
             footprint += s["scan"] * size  # every scan object is unique
 
-            # Popularity-driven requests with a churn fraction of new objects.
+            # Per-request random draws (vectorized for speed).
             weights = _zipf_weights(s["n_objs"], s["alpha"])
-            pool_ids = rng.choice(s["n_objs"], size=REQS_PER_SEGMENT, p=weights)
-            is_new = rng.random(REQS_PER_SEGMENT) < s["churn"]
-
-            # Footprint: churn objects are all unique; pool objects counted once.
-            footprint += int(is_new.sum()) * size
-            drawn_pool = pool_ids[~is_new]
-            if drawn_pool.size:
-                uniq = np.unique(drawn_pool)
-                fresh = uniq[pool_first_size[uniq] == 0]
-                pool_first_size[fresh] = size
+            pool_draw = rng.choice(s["n_objs"], size=REQS_PER_SEGMENT, p=weights)
+            r_kind = rng.random(REQS_PER_SEGMENT)  # churn vs (locality / pool)
+            r_loc = rng.random(REQS_PER_SEGMENT)   # locality vs pool (non-churn)
 
             for j in range(REQS_PER_SEGMENT):
                 clock += 1
-                if is_new[j]:
+                if r_kind[j] < churn:
+                    # Brand-new (never-reused) object: a compulsory miss.
                     obj = churn_id
                     churn_id += 1
+                    footprint += size
+                elif recent and r_loc[j] < loc:
+                    # Recency-driven re-access: reuse a recently requested object
+                    # (no footprint change; it was already counted when first seen).
+                    obj = recent[rng.integers(len(recent))]
                 else:
-                    obj = int(pool_ids[j])
+                    # Independent Zipf draw from the popularity pool (IRM).
+                    obj = int(pool_draw[j])
+                    if pool_first_size[obj] == 0:
+                        pool_first_size[obj] = size  # footprint summed at the end
                 f.write(f"{clock},{obj},{size}\n")
+                recent.append(obj)
 
     footprint += int(pool_first_size.sum())
     return path, int(footprint)
