@@ -3,9 +3,9 @@
 Generates a synthetic workload from the encoded knob vector (see
 ``cache.generate_trace``), runs libCacheSim's ``cachesim`` for a *reference* and
 a *target* eviction policy at a chosen cache size, scores each policy by its
-(byte) hit rate, and returns the *relative difference* between the reference and
-target scores (via ``scoring.compute_score``). Higher score means the discovered
-workload is more adversarial for the target policy.
+(byte) hit rate, and returns the *absolute difference* ``ref_hit - tar_hit``
+(bounded to [-1, 1]). Higher score means the discovered workload is more
+adversarial for the target policy.
 
 Cache sizing (``cache_size`` argument)
 --------------------------------------
@@ -28,7 +28,6 @@ import re
 import subprocess
 
 from cache.generate_trace import generate_trace
-from scoring.scoring import compute_score
 
 # Location of libCacheSim's cachesim binary. Override with ADVNET_CACHESIM.
 CACHESIM_BIN = os.environ.get(
@@ -54,11 +53,6 @@ MIN_CACHE_BYTES = 1024
 # "cache holds ~1 object" regime where partitioned policies (e.g. S3FIFO) trivially
 # hit 0 while a simple policy still catches a little reuse.
 MIN_CACHE_FRACTION = 0.01
-# Gated-relative objective: a trace only counts as adversarial if the REFERENCE
-# policy itself caches well (hit rate >= this). Rejects degenerate regimes where
-# nobody caches (tiny cache, high churn, no reuse) that would otherwise saturate
-# the relative score to 1.0 whenever the target reaches 0 hits.
-REF_HIT_GATE = 0.3
 
 # Matches the final summary line, anchored on ", throughput" so the per-interval
 # progress lines (".. miss ratio X, interval miss ratio Y") never match. The
@@ -125,12 +119,11 @@ def evaluate(trace, ref_policy, tar_policy, cache_size="100MB",
         debug: Print the cache size, per-policy hit rates and the final score.
 
     Returns:
-        float: gated relative difference of the per-policy (byte) hit rates,
-        ``(ref_hit - tar_hit) / max(ref_hit, tar_hit)``. Positive means the
-        target policy is worse on this workload (adversarial). Returns 0.0 when
-        the reference hit rate is below ``REF_HIT_GATE`` (degenerate "nobody
-        caches" regime) or on build/sim failure. In knob mode the cache size is
-        floored at ``MIN_CACHE_FRACTION`` of the footprint.
+        float: absolute difference of the per-policy (byte) hit rates,
+        ``ref_hit - tar_hit`` (bounded to [-1, 1]). Positive means the target
+        policy is worse on this workload (adversarial). Returns 0.0 on build/sim
+        failure. In knob mode the cache size is floored at ``MIN_CACHE_FRACTION``
+        of the footprint.
     """
     if str(cache_size) == KNOB_CACHE_SIZE:
         if len(trace) < 1:
@@ -171,22 +164,19 @@ def evaluate(trace, ref_policy, tar_policy, cache_size="100MB",
     else:
         ref_score, tar_score = 1.0 - ref[0], 1.0 - tar[0]
 
-    # Gated-relative objective: only score traces where the reference policy
-    # actually caches well; otherwise the trace is a degenerate "nobody caches"
-    # case and is not adversarially interesting.
-    if ref_score < REF_HIT_GATE:
-        score = 0.0
-    else:
-        # Relative difference between the two policy scores (same convention as
-        # scoring.compute_score, used by the other AdvNet domains): positive when
-        # the reference outperforms the target, i.e. adversarial for the target.
-        score = float(compute_score([ref_score], [tar_score]))
+    # Absolute-difference objective: hit-rate points the target loses relative to
+    # the reference. Bounded to [-1, 1]; positive means the workload is
+    # adversarial for the target. This self-regularizes (a large gap requires the
+    # reference to cache well, since tar_hit >= 0) so no explicit ref-hit gate is
+    # needed, it never saturates the way the relative score does, and the values
+    # are comparable across the whole policy matrix.
+    score = ref_score - tar_score
 
     if debug:
         label = "byte hit rate" if use_byte else "obj hit rate"
         print(f"    {ref_policy} {label}: {ref_score:.4f}")
         print(f"    {tar_policy} {label}: {tar_score:.4f}")
-        print(f"    score (relative diff): {score:.4f}")
+        print(f"    score (absolute diff): {score:.4f}")
     return score
 
 
