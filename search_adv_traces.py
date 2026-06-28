@@ -23,6 +23,7 @@ from ns3_tcp.evaluate import evaluate as evaluate_ns3_tcp
 from multiflow.single_cc import evaluate as evaluate_multiflow_single_cc
 from multiflow.mptcp import evaluate as evaluate_multiflow_mptcp
 from multiflow.picoquic_corrected import evaluate as evaluate_picoquic_multiflow_single_cc
+from cache.evaluate import evaluate as evaluate_cache
 from random_generator.random_generator import RandomGeneration
 from GA.ga import AdvNetGA
 from BO.bo import AdvNetBO
@@ -111,6 +112,7 @@ if __name__ == "__main__":
     parser.add_argument('--rl_steps', type=int, help='Number of steps in an episode in RL', default=2)
     parser.add_argument('--history_len', type=int, help='Number of previous steps to consider for observation in RL', default=1)
     parser.add_argument('--gamma', type=float, help='Discount factor in RL', default=0.99)
+    parser.add_argument('--cache_size', type=str, default="absolute", help='Cache capacity for the cache domain: absolute (e.g. 100MB / 1GB), or "knob" to make the size a searchable fraction of the workload footprint (last trace element)')
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -265,5 +267,15 @@ if __name__ == "__main__":
         elif args.alg == 0:  # Random
             randomGenerator = RandomGeneration(args.trace_length, args.l_bounds, args.u_bounds, args.seed, evaluate_ns3_tcp, args.type, args.n_iter, args.ref, args.tar)
             trace, score = randomGenerator.run(args.total_time)
+
+    elif args.type == 8:  # cache eviction policy (libCacheSim)
+        if args.alg == 1:  # GA
+            start_time = time.perf_counter()
+            problem = CCProblem(args.trace_length, args.l_bounds, args.u_bounds, evaluate_cache, args.seed, start_time, args.total_time, args.type, None, args.ref, args.tar, args.cache_size)
+            ga = AdvNetGA(problem, args.pop_size, args.seed, args.n_iter)
+            result = ga.run()
+        elif args.alg == 0:  # Random
+            randomGenerator = RandomGeneration(args.trace_length, args.l_bounds, args.u_bounds, args.seed, evaluate_cache, args.type, args.n_iter, args.ref, args.tar, args.cache_size)
+            randomGenerator.run(args.total_time)
 
     os.system("pkill -9 iperf")  # clean up the background iperf server(s)

@@ -83,6 +83,8 @@ class CCProblem(ElementwiseProblem):
                     score = self.func(list(x), self.args[0], self.args[1], self.args[2], self.args[3])
                 elif self.type == 7:
                     score = self.func(list(x), self.args[0], self.args[1], False)
+                elif self.type == 8:
+                    score = self.func(list(x), self.args[0], self.args[1], self.args[2])
                 out["F"] = -score
                 self.update_max_score(time_passed, x, score)
                 self.log(time_passed, x, score)
@@ -119,7 +121,9 @@ class CCProblem(ElementwiseProblem):
             elif self.type == 4:
                 self._append("results/score_across_comparisons_GA_"+self.args[0]+"_vs_"+self.args[2]+"_2_timesteps_5_eval_multiflow_lcb", self.comps, time_passed, self.max_score, list(x))
             elif self.type == 7:
-                self._append("t_coeff_0.5/score_across_comparisons_NS3_GA_"+self.args[0]+"_vs_"+self.args[1]+"_2_timesteps_with_delay", self.comps, self.max_score, list(x))
+                self._append("0.4_0.4_0.2/score_across_comparisons_NS3_GA_"+self.args[0]+"_vs_"+self.args[1]+"_2_timesteps_with_delay", self.comps, self.max_score, list(x))
+            elif self.type == 8:
+                self._append("cache_results/score_across_comparisons_cache_GA_"+self.args[0]+"_vs_"+self.args[1]+"_"+str(self.args[2]), self.comps, time_passed, self.max_score, list(x))
 
     def log(self, time_passed, x, score):
         """Log every evaluated trace to the per-domain log file."""
@@ -137,7 +141,9 @@ class CCProblem(ElementwiseProblem):
         elif self.type == 2:
             self._append("logs/score_across_comparisons_GA_dc_vs_hb_2_timesteps", self.comps, score, list(x))
         elif self.type == 7:
-            self._append("t_coeff_0.5/logs/score_across_comparisons_NS3_GA_"+self.args[0]+"_vs_"+self.args[1]+"_2_timesteps_with_delay", self.comps, score, list(x))
+            self._append("0.4_0.4_0.2/logs/score_across_comparisons_NS3_GA_"+self.args[0]+"_vs_"+self.args[1]+"_2_timesteps_with_delay", self.comps, score, list(x))
+        elif self.type == 8:
+            self._append("cache_results/logs/score_across_comparisons_cache_GA_"+self.args[0]+"_vs_"+self.args[1]+"_"+str(self.args[2]), self.comps, score, list(x))
 
     def save(self):
         """Placeholder hook for persisting the best-score history.
