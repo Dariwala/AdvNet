@@ -53,8 +53,8 @@ for SEED in "${SEEDS[@]}"; do
                 --type=8 --alg=1 \
                 --ref="${REF}" --tar="${TAR}" --cache_size=knob \
                 --trace_length=11 \
-                --l_bounds  50  1  1  0  0   50  1  1  0  0    5 \
-                --u_bounds 150 500 64 100 50  150 500 64 100 50  500 \
+                --l_bounds  50  1  1  0  0   50  1  1  0  0    10 \
+                --u_bounds 150 200 64 50 50  150 200 64 50 50  500 \
                 --seed="${SEED}" --pop_size=20 --n_iter=500 --total_time=3600
 
             echo "=== Finished seed=${SEED} ref=${REF} tar=${TAR} ==="

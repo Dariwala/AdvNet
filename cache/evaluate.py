@@ -47,8 +47,18 @@ ABSOLUTE_CACHE_SIZE = "absolute"
 DEFAULT_ABS_CACHE_SIZE = "100MB"
 # Fraction knob decoding: fraction = encoded_value / FRACTION_SCALE.
 FRACTION_SCALE = 1000.0
-# Never ask cachesim for a degenerate (sub-object) cache.
+# Absolute backstop so cachesim never gets a zero-byte cache.
 MIN_CACHE_BYTES = 1024
+# Cache-size floor (knob mode): never let the searchable fraction drop the cache
+# below this fraction of the workload footprint. Prevents the degenerate
+# "cache holds ~1 object" regime where partitioned policies (e.g. S3FIFO) trivially
+# hit 0 while a simple policy still catches a little reuse.
+MIN_CACHE_FRACTION = 0.01
+# Gated-relative objective: a trace only counts as adversarial if the REFERENCE
+# policy itself caches well (hit rate >= this). Rejects degenerate regimes where
+# nobody caches (tiny cache, high churn, no reuse) that would otherwise saturate
+# the relative score to 1.0 whenever the target reaches 0 hits.
+REF_HIT_GATE = 0.3
 
 # Matches the final summary line, anchored on ", throughput" so the per-interval
 # progress lines (".. miss ratio X, interval miss ratio Y") never match. The
@@ -111,9 +121,12 @@ def evaluate(trace, ref_policy, tar_policy, cache_size="100MB",
         debug: Print the cache size, per-policy hit rates and the final score.
 
     Returns:
-        float: relative difference ``(ref_hit - tar_hit) / max(ref_hit, tar_hit)``
-        of the per-policy (byte) hit rates. Positive means the target policy is
-        worse on this workload (adversarial). 0.0 on build/sim failure.
+        float: gated relative difference of the per-policy (byte) hit rates,
+        ``(ref_hit - tar_hit) / max(ref_hit, tar_hit)``. Positive means the
+        target policy is worse on this workload (adversarial). Returns 0.0 when
+        the reference hit rate is below ``REF_HIT_GATE`` (degenerate "nobody
+        caches" regime) or on build/sim failure. In knob mode the cache size is
+        floored at ``MIN_CACHE_FRACTION`` of the footprint.
     """
     if str(cache_size) == KNOB_CACHE_SIZE:
         if len(trace) < 1:
@@ -121,7 +134,9 @@ def evaluate(trace, ref_policy, tar_policy, cache_size="100MB",
         segment_knobs = list(trace[:-1])
         fraction = max(trace[-1] / FRACTION_SCALE, 1e-4)
         trace_path, footprint = generate_trace(segment_knobs, seed=seed)
-        cache_arg = max(int(fraction * footprint), MIN_CACHE_BYTES)
+        cache_arg = max(int(fraction * footprint),
+                        int(MIN_CACHE_FRACTION * footprint),
+                        MIN_CACHE_BYTES)
         if debug:
             print(f"    footprint: {footprint} B, fraction: {fraction:.4f}, "
                   f"cache: {cache_arg} B")
@@ -152,13 +167,15 @@ def evaluate(trace, ref_policy, tar_policy, cache_size="100MB",
     else:
         ref_score, tar_score = 1.0 - ref[0], 1.0 - tar[0]
 
-    # Main adversarial score = relative difference between the two policy scores
-    # (same convention as scoring.compute_score, used by the other AdvNet
-    # domains): positive when the reference outperforms the target, i.e. the
-    # workload is adversarial for the target.
-    if max(ref_score, tar_score) <= 1e-9:
-        score = 0.0   # both policies hit ~nothing -> no differentiation
+    # Gated-relative objective: only score traces where the reference policy
+    # actually caches well; otherwise the trace is a degenerate "nobody caches"
+    # case and is not adversarially interesting.
+    if ref_score < REF_HIT_GATE:
+        score = 0.0
     else:
+        # Relative difference between the two policy scores (same convention as
+        # scoring.compute_score, used by the other AdvNet domains): positive when
+        # the reference outperforms the target, i.e. adversarial for the target.
         score = float(compute_score([ref_score], [tar_score]))
 
     if debug:
