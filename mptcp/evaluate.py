@@ -160,6 +160,11 @@ def evaluate(trace, ref, n_evals, mptcp_type, kernel, tar, log = False, lock = N
     t_coeff = 1
     d_coeff = 1 - t_coeff
     t_ref = max(bandwidths_1)
+
+    if mptcp_type == 8:
+        # Convert reference bandwidth from kbit/s to Mibit/s
+        # to match the measured throughput.
+        t_ref = t_ref * 1000.0 / (2 ** 20)
     l_ref = min(latencies_1)
     singleCCProtocolScore = SingleCCProtocolScore(t_coeff, d_coeff, t_ref, l_ref).w_sum
     ref_scores = []
